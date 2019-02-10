@@ -15,7 +15,10 @@
   ;; (listof (non-empty-listof string?))
   ;; Strings represent platforms in the sense of `matching-platform?`.
   `(["x86_64-linux"]
+    ["win32-x86_64"]
     ["x86_64-macosx"]))
+
+;; TODO use https for submodule
 
 ;; to cross-compile i386-linux:
 ;; sudo apt install libc6-dev-i386
@@ -27,7 +30,7 @@
 ;; SSH disabled on Mac, Linux right now
 ;; iconv disabled on Linux right now ;; this is w/ Racket, right ???
 
-;; CMAKE_BUILD_TYPE RELEASE [Defautt: DEBUG]
+;; CMAKE_BUILD_TYPE RELEASE [Default: DEBUG]
 
 (module+ main
   (require racket/cmdline)
@@ -57,7 +60,7 @@
 (define so-name
   (format (match (system-type)
             ['macosx "libgit2~a.dylib"]
-            ['windows (error who "TODO: windows")]
+            ['windows "git2~a.dylib"]
             [_ "libgit2.so~a"])
           version))
 
@@ -88,32 +91,33 @@
   (define code
     (apply system*/exit-code #:set-pwd? #t cmd args))
   (unless (= 0 code)
-    (error who "system*/check failed; TODO write a better message")))
+    (error who
+           "system*/check failed with exit code ~e\n  arguments: ~e"
+           code
+           args)))
 
 (define-values [cmake ctest git]
-  (let* ([cmake (lazy (find-executable-path "cmake"))]
-         [ctest (lazy (find-executable-path "ctest"))]
-         [git (lazy (find-executable-path "git"))]
-         [wrap-required
-          (λ (it)
-            (lazy (let ([cmake (force cmake)]
-                        [ctest (force ctest)]
-                        [git (force git)])
-                    (unless (and cmake ctest)
-                      (error who 
-                             "required executable~s not found\n  cmake: ~e\n  ctest: ~e\n  git: ~e"
-                             (if (= 1 (for/sum ([x (in-list (list cmake ctest git))]
-                                                #:unless x)
-                                        1))
-                                 ""
-                                 "s")
-                             cmake
-                             ctest
-                             git))
-                    it)))]
-         [wrap-proc (λ (it)
-                      (λ args (apply system*/check (force it) args)))]
-         [wrap (λ (it) (wrap-proc (wrap-required it)))])
+  (let ([cmake (lazy (find-executable-path "cmake"))]
+        [ctest (lazy (find-executable-path "ctest"))]
+        [git (lazy (find-executable-path "git"))])
+    (define exn-promise
+      (lazy (let ([cmake (force cmake)]
+                  [ctest (force ctest)]
+                  [git (force git)])
+              (unless (and cmake ctest git)
+                (error who 
+                       "required executable~s not found\n  cmake: ~e\n  ctest: ~e\n  git: ~e"
+                       (if (= 1 (for/sum ([x (in-list (list cmake ctest git))]
+                                          #:unless x)
+                                  1))
+                           ""
+                           "s")
+                       cmake
+                       ctest
+                       git)))))
+    (define ((wrap it) . args)
+      (force exn-promise)
+      (apply system*/check (force it) args))
     (values (wrap cmake)
             (wrap ctest)
             (wrap git))))

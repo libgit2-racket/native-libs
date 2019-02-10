@@ -1,0 +1,18 @@
+image:
+- Visual Studio 2015
+
+install:
+- git submodule init
+- git submodule update
+
+build_script:
+- mkdir w64
+- cd w64
+- cmake ../src
+- ls
+- cmake --build .
+- ls
+
+test_script:
+- ctest -V
+

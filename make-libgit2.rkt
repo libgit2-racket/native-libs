@@ -9,16 +9,27 @@
          racket/match
          racket/runtime-path)
 
-(define version "")
-
 (define supported-platforms
-  ;; (listof (non-empty-listof string?))
-  ;; Strings represent platforms in the sense of `matching-platform?`.
-  `(["x86_64-linux"]
-    ["win32-x86_64"]
+  ;;   (listof PlatformSpec)
+  ;; where a PlatformSpec is:
+  ;;   (cons/c string? (or/c (list/c) (list/c (or/c string? regexp?))))
+  ;; The first element of a PlatformSpec is the cannonical
+  ;;   platform string, in the sense of `matching-platform?`.
+  ;; If there is a second element, it is used instead of the first
+  ;;   for `install-platform` in the "info.rkt" file (to support natipkg).
+  `(["x86_64-linux" #rx"^x86_64-linux(?:-natipkg)?$"]
+    ["i386-linux"]
+    ["win32\\x86_64"]
+    ["win32\\i386"]
     ["x86_64-macosx"]))
 
-;; TODO use https for submodule
+(define pkg-version "0.0")
+
+(define cmake-build-type
+  ;; -DCMAKE_BUILD_TYPE=RELEASE [default: DEBUG]
+  #"DEBUG")
+
+(define version "")
 
 ;; to cross-compile i386-linux:
 ;; sudo apt install libc6-dev-i386
@@ -29,11 +40,14 @@
 
 ;; SSH disabled on Mac, Linux right now
 ;; iconv disabled on Linux right now ;; this is w/ Racket, right ???
-
-;; CMAKE_BUILD_TYPE RELEASE [Default: DEBUG]
+;; appveyor w64 doesn't find SSH or iconv
 
 (module+ main
   (require racket/cmdline)
+  (printf "> (system-library-subpath #f)\n  ~v\n" (system-library-subpath #f))
+  (for ([p (in-list '("win32\\x86_64" "win32\\i386"))])
+    (printf "(matching-platform? ~v)\n  ~v\n" (matching-platform? p)))
+  (exit 1)
   (let ([lib? #t]
         [info? #t]
         [force? #f])
@@ -60,7 +74,7 @@
 (define so-name
   (format (match (system-type)
             ['macosx "libgit2~a.dylib"]
-            ['windows "git2~a.dylib"]
+            ['windows "git2~a.dll"]
             [_ "libgit2.so~a"])
           version))
 
@@ -97,9 +111,14 @@
            args)))
 
 (define-values [cmake ctest git]
-  (let ([cmake (lazy (find-executable-path "cmake"))]
-        [ctest (lazy (find-executable-path "ctest"))]
-        [git (lazy (find-executable-path "git"))])
+  (let* ([find (λ (s)
+                 (let ([s (case (system-type)
+                            [(windows) (string-append s ".exe")]
+                            [else s])])
+                   (lazy (find-executable-path s))))]
+         [cmake (find "cmake")]
+         [ctest (find "ctest")]
+         [git (find "git")])
     (define exn-promise
       (lazy (let ([cmake (force cmake)]
                   [ctest (force ctest)]
@@ -127,29 +146,49 @@
   dir)
 
 
-(define (get-platform)
-  (match (assf matching-platform? supported-platforms)
-    [(list platform)
-     platform]
-    [#f
-     (error who
-            "not running on a supported host platform\n  current platform: ~e"
-            (system-library-subpath #f))]))
+(define (get-platform-spec)
+  (or (for/first ([spec (in-list supported-platforms)]
+                  #:when (matching-platform? (car spec)))
+        spec)
+      (error who
+             "not running on a supported host platform\n  current platform: ~e"
+             (system-library-subpath #f))))
 
-(define (make [platform (get-platform)]
-              #:force? [force? #f]
+
+(define (make #:force? [force? #f]
               #:lib? [lib? #t]
               #:info? [info? #t])
+  (apply make* #:force? force? #:lib? lib? #:info? info? (get-platform-spec)))
+
+
+(define (make* platform
+               [install-platform platform]
+               #:force? [force? #f]
+               #:lib? [lib? #t]
+               #:info? [info? #t])
   (define pkg-dir
     (make-directory**
-     (build-path here (string-append "libgit2-" platform))))
+     (build-path
+      here
+      (string-append "libgit2-"
+                     (regexp-replace* #rx"\\\\" platform "-")))))
   (define build-dir
     (make-directory**
      (build-path build-base-dir platform)))
   (define build-dir-so
-    (build-path build-dir so-name))
+    (build-path (match (system-type)
+                  ['windows
+                   (build-path build-dir
+                               (string-titlecase
+                                (bytes->string/utf-8
+                                 cmake-build-type)))]
+                  [_
+                   build-dir])
+                so-name))
   (define pkg-dir-so
     (build-path pkg-dir so-name))
+  (define sep
+    ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
   ;; make the native library
   (when lib?
     ;; compile if needed
@@ -158,24 +197,40 @@
           (not (and (file-exists? .src-status)
                     (file-exists? build-dir-so)))
           (not (equal? (file->string .src-status) (get-current-src-status)))))
+    (define must-copy?
+      (or must-compile?
+          (not (file-exists? pkg-dir-so))
+          (not (<= (file-or-directory-modify-seconds build-dir-so)
+                   (file-or-directory-modify-seconds pkg-dir-so)))))
     (when must-compile?
       (parameterize ([current-directory build-dir]
                      [current-input-port (open-input-bytes #"")])
-        (cmake src)
+        (cmake (bytes-append #"-DCMAKE_BUILD_TYPE=" cmake-build-type)
+               src)
         (cmake #"--build" build-dir)
         (ctest #"-V"))
       (call-with-output-file* .src-status
         #:exists 'truncate/replace
         (λ (out) (write-string (get-current-src-status) out))))
+    (when (or must-compile? must-copy?)
+      (printf "~a\n~a\n\n\n~a~a~a\n\n\n~a\n~a\n"
+              sep sep
+              (if must-compile? (format "~a: build finished" who) "")
+              (if (and must-compile? must-copy?) "\n" "")
+              (if must-copy?
+                  (format "~a: copying\n  from: ~e\n  to: ~e"
+                          who build-dir-so pkg-dir-so)
+                  "")
+              sep sep))
     ;; copy if needed
-    (when (or must-compile?
-              (not (file-exists? pkg-dir-so))
-              (not (<= (file-or-directory-modify-seconds build-dir-so)
-                       (file-or-directory-modify-seconds pkg-dir-so))))
+    (when must-copy?
       (copy-file build-dir-so pkg-dir-so 'replace)))
   ;; make the info.rkt file
   (when info?
-    (call-with-output-file* (build-path pkg-dir "info.rkt")
+    (define info.rkt (build-path pkg-dir "info.rkt"))
+    (printf "~a\n~a\n\n\n~a: writing \"info.rkt\"\n  to: ~e\n\n\n~a\n~a\n"
+            sep sep who info.rkt sep sep)
+    (call-with-output-file* info.rkt
       #:exists 'truncate/replace
       (λ (out)
         (define pkg-desc
@@ -185,10 +240,10 @@
         (for ([sexp (in-list
                      `((define collection "libgit2")
                        (define pkg-desc ,pkg-desc)
-                       (define version "0.0")
+                       (define version ,pkg-version)
                        (define pkg-authors '(philip))
                        #\newline
-                       (define install-platform ,platform)
+                       (define install-platform ,install-platform)
                        (define copy-foreign-libs '(,so-name))
                        #\newline
                        (define deps '("base"))))])

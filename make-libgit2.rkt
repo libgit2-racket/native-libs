@@ -29,6 +29,7 @@
 
 ;; SSH disabled on Mac, Linux right now
 ;; iconv disabled on Linux right now ;; this is w/ Racket, right ???
+;; appveyor w64 doesn't find SSH or iconv
 
 ;; CMAKE_BUILD_TYPE RELEASE [Default: DEBUG]
 

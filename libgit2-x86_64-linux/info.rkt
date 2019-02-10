@@ -6,7 +6,7 @@
 (define pkg-authors '(philip))
 
 (define install-platform "x86_64-linux")
-(define copy-foreign-libs '("libgit2.so.28"))
+(define copy-foreign-libs '("libgit2.so"))
 
 (define deps '("base"))
 

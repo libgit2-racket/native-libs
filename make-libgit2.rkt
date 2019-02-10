@@ -9,7 +9,7 @@
          racket/match
          racket/runtime-path)
 
-(define version "28")
+(define version "")
 
 (define supported-platforms
   ;; (listof (non-empty-listof string?))
@@ -26,6 +26,8 @@
 
 ;; SSH disabled on Mac, Linux right now
 ;; iconv disabled on Linux right now ;; this is w/ Racket, right ???
+
+;; CMAKE_BUILD_TYPE RELEASE [Defautt: DEBUG]
 
 (module+ main
   (require racket/cmdline)
@@ -54,9 +56,9 @@
 
 (define so-name
   (format (match (system-type)
-            ['macosx "libgit2.~a.dylib"]
+            ['macosx "libgit2~a.dylib"]
             ['windows (error who "TODO: windows")]
-            [_ "libgit2.so.~a"])
+            [_ "libgit2.so~a"])
           version))
 
 (define-runtime-path src "src")
@@ -146,14 +148,12 @@
     (build-path pkg-dir so-name))
   ;; make the native library
   (when lib?
+    ;; compile if needed
     (define must-compile?
       (or force?
           (not (and (file-exists? .src-status)
-                    (file-exists? build-dir-so)
-                    (file-exists? pkg-dir-so)))
-          (not (equal? (file->string .src-status) (get-current-src-status)))
-          (not (<= (file-or-directory-modify-seconds build-dir-so)
-                   (file-or-directory-modify-seconds pkg-dir-so)))))
+                    (file-exists? build-dir-so)))
+          (not (equal? (file->string .src-status) (get-current-src-status)))))
     (when must-compile?
       (parameterize ([current-directory build-dir]
                      [current-input-port (open-input-bytes #"")])
@@ -162,7 +162,12 @@
         (ctest #"-V"))
       (call-with-output-file* .src-status
         #:exists 'truncate/replace
-        (λ (out) (write-string (get-current-src-status) out)))
+        (λ (out) (write-string (get-current-src-status) out))))
+    ;; copy if needed
+    (when (or must-compile?
+              (not (file-exists? pkg-dir-so))
+              (not (<= (file-or-directory-modify-seconds build-dir-so)
+                       (file-or-directory-modify-seconds pkg-dir-so))))
       (copy-file build-dir-so pkg-dir-so 'replace)))
   ;; make the info.rkt file
   (when info?

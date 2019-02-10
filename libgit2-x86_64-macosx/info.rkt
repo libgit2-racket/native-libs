@@ -6,7 +6,7 @@
 (define pkg-authors '(philip))
 
 (define install-platform "x86_64-macosx")
-(define copy-foreign-libs '("libgit2.28.dylib"))
+(define copy-foreign-libs '("libgit2.dylib"))
 
 (define deps '("base"))
 

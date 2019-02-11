@@ -11,9 +11,9 @@ at the root of this repository:
     
     - `libgit2-x86_64-linux`
 
-    - `libgit2-i386-linux`
+    - `libgit2-i386-linux` *(currently fails test)*
 
-    - `libgit2-win32-x86_64`
+    - `libgit2-win32-x86_64` *(currently fails test)*
 
 The root of this repository is not itself a Racket package:
 it contains support for building the packages listed above.
@@ -53,7 +53,7 @@ Edit the script (on a branch) to change the packages.
 The script must then be run on each of the supported platforms to
 compile the appropriate binaries.
 Windows and Linux builds are run by AppVeyor when a commit message
-begins with `BUILD`.
+begins with `BUILD`, case-insensitively.
 After the build completes, download the package directory as a .zip
 file from the "Artifacts" tab of each job and manually add them to the
 repository. (There is probably a more elegant way to do this.)

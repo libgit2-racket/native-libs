@@ -5,7 +5,7 @@
 (define version "0.0")
 (define pkg-authors '(philip))
 
-(define install-platform "x86_64-linux")
+(define install-platform #rx"^x86_64-linux(?:-natipkg)?$")
 (define copy-foreign-libs '("libgit2.so"))
 
 (define deps '("base"))

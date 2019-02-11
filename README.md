@@ -7,13 +7,13 @@ the Racket package system.
 These platform-specific packages are directories
 at the root of this repository:
 
-    - `libgit2-x86_64-macosx`
+- `libgit2-x86_64-macosx`
     
-    - `libgit2-x86_64-linux`
+- `libgit2-x86_64-linux`
 
-    - `libgit2-i386-linux` *(currently fails test)*
+- `libgit2-i386-linux` *(currently fails test)*
 
-    - `libgit2-win32-x86_64` *(currently fails test)*
+- `libgit2-win32-x86_64` *(currently fails test)*
 
 The root of this repository is not itself a Racket package:
 it contains support for building the packages listed above.
@@ -48,7 +48,7 @@ Likewise for `v1.0.0`.
 **Do not modify the Racket packages directly!**
 The packages are generated automatically by the `make-libgit2.rkt`
 script in the root of this repository.
-(It had no dependencies beyond the main Racket distribution.)
+(It has no dependencies beyond the main Racket distribution.)
 Edit the script (on a branch) to change the packages.
 The script must then be run on each of the supported platforms to
 compile the appropriate binaries.

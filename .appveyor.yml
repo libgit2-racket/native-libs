@@ -75,13 +75,13 @@ for:
       - export PATH="${RACKET_DIR}/bin:${PATH}" #install-racket.sh can't set for us
 
     build_script: &linux_build_script
-      - ~/racket/racket make-libgit2.rkt
+      - ~/racket/bin/racket make-libgit2.rkt
 
     before_test: &linux_before_test
-      - ~/racket/raco pkg install -i --link "$PKG_DIR"
+      - ~/racket/bin/raco pkg install -i --link "$PKG_DIR"
 
     test_script: &linux_test_script
-      - ~/racket/racket test-script.rkt
+      - ~/racket/bin/racket test-script.rkt
       
   -
     matrix:

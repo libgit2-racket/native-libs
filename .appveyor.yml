@@ -10,8 +10,9 @@ environment:
   CYGPATH: cygpath -u # used by download-racket.sh on Windows
 
 ############################################################################
-# set PKG_DIR to be used test_scripts & artifacts
+# os- and sometimes platform-specific configuration
 for:
+  # set PKG_DIR to be used test_scripts & artifacts for os & platform
   -
     matrix:
       only:
@@ -29,16 +30,8 @@ for:
 
     environment:
       PKG_DIR: libgit2-win32-i386
-      
-############################################################################
-# get the src submodule
-install:
-  - git submodule init
-  - git submodule update
-
-############################################################################
-# os-specific commands to install Racket & install package for testing
-for:
+  ###################################
+  # os-specific commands to install Racket & install package for testing
   -
     matrix:
       only:
@@ -64,8 +57,13 @@ for:
 
     before_test:
       - raco pkg install -i --link "$PKG_DIR"
-
+      
 ############################################################################
+# get the src submodule
+install:
+  - git submodule init
+  - git submodule update
+
 # build libgit2
 build_script:
   - racket make-libgit2.rkt

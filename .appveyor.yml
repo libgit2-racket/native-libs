@@ -70,18 +70,18 @@ for:
         
     before_build: &linux_before_build
       - git clone --branch i386 https://github.com/liberalartist/travis-racket.git ~/travis-racket
-      - export RACKET_DIR="~/racket"
+      - export RACKET_DIR=~/racket
       - cat ~/travis-racket/install-racket.sh | bash # pipe to bash not sh!
       - export PATH="${RACKET_DIR}/bin:${PATH}" #install-racket.sh can't set for us
 
     build_script: &linux_build_script
-      - ~/racket/bin/racket make-libgit2.rkt
+      - racket make-libgit2.rkt
 
     before_test: &linux_before_test
-      - ~/racket/bin/raco pkg install -i --link "$PKG_DIR"
+      - raco pkg install -i --link "$PKG_DIR"
 
     test_script: &linux_test_script
-      - ~/racket/bin/racket test-script.rkt
+      - racket test-script.rkt
       
   -
     matrix:

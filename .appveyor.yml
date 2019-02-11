@@ -44,6 +44,7 @@ for:
       - racket make-libgit2.rkt
 
     before_test: &windows_before_test
+      - raco test tmp-w64-test.rkt
       - raco pkg install -i --link %PKG_DIR%
 
     test_script: &common_test_script

@@ -102,9 +102,14 @@
            args)))
 
 (define-values [cmake ctest git]
-  (let ([cmake (lazy (find-executable-path "cmake"))]
-        [ctest (lazy (find-executable-path "ctest"))]
-        [git (lazy (find-executable-path "git"))])
+  (let* ([find (λ (s)
+                 (let ([s (case (system-type)
+                            [(windows) (string-append s ".exe")]
+                            [else s])])
+                   (lazy (find-executable-path s))))]
+         [cmake (find "cmake")]
+         [ctest (find "ctest")]
+         [git (find "git")])
     (define exn-promise
       (lazy (let ([cmake (force cmake)]
                   [ctest (force ctest)]

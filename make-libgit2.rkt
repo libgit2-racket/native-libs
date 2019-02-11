@@ -65,7 +65,7 @@
 (define so-name
   (format (match (system-type)
             ['macosx "libgit2~a.dylib"]
-            ['windows "git2~a.dylib"]
+            ['windows "git2~a.dll"]
             [_ "libgit2.so~a"])
           version))
 
@@ -145,6 +145,7 @@
      (error who
             "not running on a supported host platform\n  current platform: ~e"
             (system-library-subpath #f))]))
+
 
 (define (make [platform (get-platform)]
               #:force? [force? #f]

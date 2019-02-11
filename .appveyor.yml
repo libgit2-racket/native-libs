@@ -33,13 +33,13 @@ for:
       - C:\install-racket.exe /S /D=C:\racket
       - set PATH=%PATH%;C:\racket\
 
-    build_script: &windows_build_script
+    build_script: &common_build_script
       - racket make-libgit2.rkt
 
     before_test: &windows_before_test
       - raco pkg install -i --link %PKG_DIR%
 
-    test_script: &windows_test_script
+    test_script: &common_test_script
       - racket test-script.rkt
 
   -
@@ -53,11 +53,11 @@ for:
 
     before_build: *windows_before_build
 
-    build_script: *windows_build_script
+    build_script: *common_build_script
 
     before_test: *windows_before_test
 
-    test_script: *windows_test_script
+    test_script: *common_test_script
       
   -
     matrix:
@@ -74,14 +74,12 @@ for:
       - cat ~/travis-racket/install-racket.sh | bash # pipe to bash not sh!
       - export PATH="${RACKET_DIR}/bin:${PATH}" #install-racket.sh can't set for us
 
-    build_script: &linux_build_script
-      - racket make-libgit2.rkt
+    build_script: *common_build_script
 
     before_test: &linux_before_test
       - raco pkg install -i --link "$PKG_DIR"
 
-    test_script: &linux_test_script
-      - racket test-script.rkt
+    test_script: *common_test_script
       
   -
     matrix:
@@ -94,11 +92,11 @@ for:
         
     before_build: *linux_before_build
 
-    build_script: *linux_build_script
+    build_script: *common_build_script
 
     before_test: *linux_before_test
 
-    test_script: *linux_test_script
+    test_script: *common_test_script
       
 ############################################################################
 # get the src submodule

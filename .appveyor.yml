@@ -34,9 +34,15 @@ for:
       - C:\install-racket.exe /S /D=C:\racket
       - set PATH=%PATH%;C:\racket\
 
+    build_script: &windows_build_script
+      - racket make-libgit2.rkt
+
     before_test: &windows_before_test
       - raco pkg install -i --link %PKG_DIR%
-        
+
+    test_script: &windows_test_script
+      - racket test-script.rkt
+
   -
     matrix:
       only:
@@ -48,7 +54,11 @@ for:
 
     before_build: *windows_before_build
 
+    build_script: *windows_build_script
+
     before_test: *windows_before_test
+
+    test_script: *windows_test_script
       
   -
     matrix:
@@ -63,10 +73,15 @@ for:
       - git clone --branch i386 https://github.com/liberalartist/travis-racket.git ~/travis-racket
       - cat ~/travis-racket/install-racket.sh | bash # pipe to bash not sh!
       - export PATH="${RACKET_DIR}/bin:${PATH}" #install-racket.sh can't set for us
-      - echo "${PATH}"
+
+    build_script: &linux_build_script
+      - ~/racket/racket make-libgit2.rkt
 
     before_test: &linux_before_test
-      - raco pkg install -i --link "$PKG_DIR"
+      - ~/racket/raco pkg install -i --link "$PKG_DIR"
+
+    test_script: &linux_test_script
+      - ~/racket/racket test-script.rkt
       
   -
     matrix:
@@ -79,21 +94,17 @@ for:
         
     before_build: *linux_before_build
 
+    build_script: *linux_build_script
+
     before_test: *linux_before_test
+
+    test_script: *linux_test_script
       
 ############################################################################
 # get the src submodule
 install:
   - git submodule init
   - git submodule update
-
-# build libgit2
-build_script:
-  - racket make-libgit2.rkt
-
-# test that the package works
-test_script:
-  - racket test-script.rkt
 
 # save the build package
 artifacts:

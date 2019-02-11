@@ -1,78 +1,141 @@
-image:
-  - Visual Studio 2017
-
-platform:
-  - x64
-  - x86
-
-environment:
-  RACKET_VERSION: 7.2
-  CYGPATH: cygpath -u # used by download-racket.sh on Windows
-
-############################################################################
-# os- and sometimes platform-specific configuration
-for:
-  # set PKG_DIR to be used test_scripts & artifacts for os & platform
-  -
-    matrix:
-      only:
-        - image: Visual Studio 2017
-          platform: x64
-
-    environment:
-      PKG_DIR: libgit2-win32-x86_64
-        
-  -
-    matrix:
-      only:
-        - image: Visual Studio 2017
-          platform: x86
-
-    environment:
-      PKG_DIR: libgit2-win32-i386
-  ###################################
-  # os-specific commands to install Racket & install package for testing
-  -
-    matrix:
-      only:
-        - image: Visual Studio 2017
-        
-    before_build:
-      - git clone https://github.com/liberalartist/appveyor-racket.git C:\a-r
-      - bash C:\a-r\download-racket.sh C:\install-racket.exe
-      - C:\install-racket.exe /S /D=C:\racket
-      - set PATH=%PATH%;C:\racket\
-
-    before_test:
-      - raco pkg install -i --link %PKG_DIR%
-      
-  -
-    matrix:
-      only:
-        - image: Ubuntu
-        
-    before_build:
-      - echo todo
-      - exit 1
-
-    before_test:
-      - raco pkg install -i --link "$PKG_DIR"
-      
-############################################################################
-# get the src submodule
-install:
-  - git submodule init
-  - git submodule update
-
-# build libgit2
-build_script:
-  - racket make-libgit2.rkt
-
-# test that the package works
-test_script:
-  - racket test-script.rkt
-
-# save the build package
-artifacts:
-  - path: $(PKG_DIR)
-
+"for":
+- "test_script":
+  - |-
+    test-script.rkt
+  "matrix":
+    "only":
+    - "image": |-
+        Visual Studio 2015
+      "platform": |-
+        x64
+  "before_test":
+  - |-
+    raco pkg install -i --link %PKG_DIR%
+  "install":
+  - |-
+    git submodule init
+  - |-
+    git submodule update
+  "build_script":
+  - |-
+    racket make-libgit2.rkt
+  "before_build":
+  - "git clone https://github.com/liberalartist/appveyor-racket.git C:\a-r"
+  - |-
+    bash C:\a-r\download-racket.sh C:\install-racket.exe
+  - |-
+    C:\install-racket.exe /S /D=C:\racket
+  - |-
+    set PATH=%PATH%;C:\racket\
+  "environment":
+    "PKG_DIR": |-
+      libgit2-win32-x86_64
+- "test_script":
+  - |-
+    test-script.rkt
+  "matrix":
+    "only":
+    - "image": |-
+        Visual Studio 2015
+      "platform": |-
+        x86
+  "before_test":
+  - |-
+    raco pkg install -i --link %PKG_DIR%
+  "install":
+  - |-
+    git submodule init
+  - |-
+    git submodule update
+  "build_script":
+  - |-
+    racket make-libgit2.rkt
+  "before_build":
+  - "git clone https://github.com/liberalartist/appveyor-racket.git C:\a-r"
+  - |-
+    bash C:\a-r\download-racket.sh C:\install-racket.exe
+  - |-
+    C:\install-racket.exe /S /D=C:\racket
+  - |-
+    set PATH=%PATH%;C:\racket\
+  "environment":
+    "PKG_DIR": |-
+      libgit2-win32-i386
+- "test_script":
+  - |-
+    test-script.rkt
+  "matrix":
+    "only":
+    - "image": |-
+        Ubuntu
+      "platform": |-
+        x64
+  "before_test":
+  - |-
+    raco pkg install -i --link "$PKG_DIR"
+  "install":
+  - |-
+    git submodule init
+  - |-
+    git submodule update
+  "build_script":
+  - |-
+    racket make-libgit2.rkt
+  "before_build":
+  - |-
+    git clone --branch i386 https://github.com/liberalartist/travis-racket.git ~/travis-racket
+  - |-
+    cat ~/travis-racket/install-racket.sh | bash
+  - |-
+    export PATH="${RACKET_DIR}/bin:${PATH}"
+  "environment":
+    "PKG_DIR": |-
+      libgit2-x86_64-linux
+- "test_script":
+  - |-
+    test-script.rkt
+  "matrix":
+    "only":
+    - "image": |-
+        Ubuntu
+      "platform": |-
+        x86
+  "before_test":
+  - |-
+    raco pkg install -i --link "$PKG_DIR"
+  "install":
+  - |-
+    git submodule init
+  - |-
+    git submodule update
+  "build_script":
+  - |-
+    racket make-libgit2.rkt
+  "before_build":
+  - |-
+    git clone --branch i386 https://github.com/liberalartist/travis-racket.git ~/travis-racket
+  - |-
+    cat ~/travis-racket/install-racket.sh | bash
+  - |-
+    export PATH="${RACKET_DIR}/bin:${PATH}"
+  "environment":
+    "PKG_DIR": |-
+      libgit2-i386-linux
+"image":
+- |-
+  Visual Studio 2017
+"platform":
+- |-
+  x64
+- |-
+  x86
+"environment":
+  "CYGPATH": |-
+    cygpath -u
+  "RACKET_DIR": |-
+    ~/racket
+  "RACKET_VERSION": |-
+    7.2
+"artifacts":
+- "path": |-
+    $(PKG_DIR)

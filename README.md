@@ -45,6 +45,20 @@ The `src` submodule is pinned to a specific commit of `libgit2`.
 Currently, it is a pre-release of version 0.28.
 It should be updated to the `v0.28.0` tag when it becomes available
 (soon!) and the packages should be rebuilt.
+Likewise for `v1.0.0`.
 
-
+**Do not modify the Racket packages directly!**
+The packages are generated automatically by the `make-libgit2.rkt`
+script in the root of this repository.
+(It had no dependencies beyond the main Racket distribution.)
+Edit the script (on a branch) to change the packages.
+The script must then be run on each of the supported platforms to
+compile the appropriate binaries.
+Windows and Linux builds are run by AppVeyor when a commit message
+begins with `BUILD`.
+After the build completes, download the package directory as a .zip
+file from the "Artifacts" tab of each job and manually add them to the
+repository. (There is probably a more elegant way to do this.)
+You must run the Mac OS job yourself.
+Make a new commit with all of the updated packages.
 

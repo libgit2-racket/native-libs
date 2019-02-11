@@ -10,9 +10,14 @@
          racket/runtime-path)
 
 (define supported-platforms
-  ;; (listof (non-empty-listof string?))
-  ;; Strings represent platforms in the sense of `matching-platform?`.
-  `(["x86_64-linux"]
+  ;;   (listof PlatformSpec)
+  ;; where a PlatformSpec is:
+  ;;   (cons/c string? (or/c (list/c) (list/c (or/c string? regexp?))))
+  ;; The first element of a PlatformSpec is the cannonical
+  ;;   platform string, in the sense of `matching-platform?`.
+  ;; If there is a second element, it is used instead of the first
+  ;;   for `install-platform` in the "info.rkt" file (to support natipkg).
+  `(["x86_64-linux" #rx"^x86_64-linux(?:-natipkg)?$"]
     ["i386-linux"]
     ["win32\\x86_64"]
     ["win32\\i386"]
@@ -137,20 +142,26 @@
   dir)
 
 
-(define (get-platform)
-  (match (assf matching-platform? supported-platforms)
-    [(list platform)
-     platform]
-    [#f
-     (error who
-            "not running on a supported host platform\n  current platform: ~e"
-            (system-library-subpath #f))]))
+(define (get-platform-spec)
+  (or (for/first ([spec (in-list supported-platforms)]
+                  #:when (matching-platform? (car spec)))
+        spec)
+      (error who
+             "not running on a supported host platform\n  current platform: ~e"
+             (system-library-subpath #f))))
 
 
-(define (make [platform (get-platform)]
-              #:force? [force? #f]
+(define (make #:force? [force? #f]
               #:lib? [lib? #t]
               #:info? [info? #t])
+  (apply make* #:force? force? #:lib? lib? #:info? info? (get-platform-spec)))
+
+
+(define (make* platform
+               [install-platform platform]
+               #:force? [force? #f]
+               #:lib? [lib? #t]
+               #:info? [info? #t])
   (define pkg-dir
     (make-directory**
      (build-path
@@ -228,7 +239,7 @@
                        (define version ,pkg-version)
                        (define pkg-authors '(philip))
                        #\newline
-                       (define install-platform ,platform)
+                       (define install-platform ,install-platform)
                        (define copy-foreign-libs '(,so-name))
                        #\newline
                        (define deps '("base"))))])

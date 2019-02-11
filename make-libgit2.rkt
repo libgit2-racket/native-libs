@@ -21,8 +21,8 @@
 (define pkg-version "0.0")
 
 (define cmake-build-type
-  ;; CMAKE_BUILD_TYPE RELEASE [Default: DEBUG]
-  "DEBUG")
+  ;; -DCMAKE_BUILD_TYPE=RELEASE [default: DEBUG]
+  #"DEBUG")
 
 (define version "")
 
@@ -158,7 +158,9 @@
     (build-path (match (system-type)
                   ['windows
                    (build-path build-dir
-                               (string-titlecase cmake-build-type))]
+                               (string-titlecase
+                                (bytes->string/utf-8
+                                 cmake-build-type)))]
                   [_
                    build-dir])
                 so-name))

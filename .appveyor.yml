@@ -3,7 +3,7 @@ image:
 
 platform:
   - x64
-  - x86
+#  - x86 # TODO support in download-racket.sh
 
 environment:
   RACKET_VERSION: 7.2

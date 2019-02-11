@@ -46,7 +46,7 @@ for:
       - raco pkg install -i --link %PKG_DIR%
 
     test_script: &common_test_script
-      - racket test-script.rkt
+      - raco test test-script.rkt
       
   -
     matrix:

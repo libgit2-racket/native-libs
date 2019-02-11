@@ -9,16 +9,22 @@
          racket/match
          racket/runtime-path)
 
-(define version "")
-
 (define supported-platforms
   ;; (listof (non-empty-listof string?))
   ;; Strings represent platforms in the sense of `matching-platform?`.
   `(["x86_64-linux"]
-    ["win32-x86_64"]
+    ["i386-linux"]
+    ["win32\\x86_64"]
+    ["win32\\i386"]
     ["x86_64-macosx"]))
 
-;; TODO use https for submodule
+(define pkg-version "0.0")
+
+(define cmake-build-type
+  ;; CMAKE_BUILD_TYPE RELEASE [Default: DEBUG]
+  "DEBUG")
+
+(define version "")
 
 ;; to cross-compile i386-linux:
 ;; sudo apt install libc6-dev-i386
@@ -30,8 +36,6 @@
 ;; SSH disabled on Mac, Linux right now
 ;; iconv disabled on Linux right now ;; this is w/ Racket, right ???
 ;; appveyor w64 doesn't find SSH or iconv
-
-;; CMAKE_BUILD_TYPE RELEASE [Default: DEBUG]
 
 (module+ main
   (require racket/cmdline)
@@ -143,12 +147,21 @@
               #:info? [info? #t])
   (define pkg-dir
     (make-directory**
-     (build-path here (string-append "libgit2-" platform))))
+     (build-path
+      here
+      (string-append "libgit2-"
+                     (regexp-replace* #rx"\\\\" platform "-")))))
   (define build-dir
     (make-directory**
      (build-path build-base-dir platform)))
   (define build-dir-so
-    (build-path build-dir so-name))
+    (build-path (match (system-type)
+                  ['windows
+                   (build-path build-dir
+                               (string-titlecase cmake-build-type))]
+                  [_
+                   build-dir])
+                so-name))
   (define pkg-dir-so
     (build-path pkg-dir so-name))
   ;; make the native library
@@ -162,7 +175,8 @@
     (when must-compile?
       (parameterize ([current-directory build-dir]
                      [current-input-port (open-input-bytes #"")])
-        (cmake src)
+        (cmake (bytes-append #"-DCMAKE_BUILD_TYPE=" cmake-build-type)
+               src)
         (cmake #"--build" build-dir)
         (ctest #"-V"))
       (call-with-output-file* .src-status
@@ -186,7 +200,7 @@
         (for ([sexp (in-list
                      `((define collection "libgit2")
                        (define pkg-desc ,pkg-desc)
-                       (define version "0.0")
+                       (define version ,pkg-version)
                        (define pkg-authors '(philip))
                        #\newline
                        (define install-platform ,platform)

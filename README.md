@@ -37,11 +37,11 @@ either with `git clone --recurse-submodules`
 or by running `git submodule init && git submodule update`
 after you have cloned the repository.
 
-The `src` submodule is pinned to a specific commit of `libgit2`.
-Currently, it is a pre-release of version 0.28.
-It should be updated to the `v0.28.0` tag when it becomes available
-(soon!) and the packages should be rebuilt.
-Likewise for `v1.0.0`.
+The `src` submodule is pinned to a specific commit of `libgit2`:
+currently, the `v0.28.0` tag.
+It should be updated to `v1.0.0`
+[when it becomes available](https://github.com/libgit2/libgit2/issues/4960)
+and the packages should be rebuilt.
 
 **Do not modify the Racket packages directly!**
 The packages are generated automatically by the `make-libgit2.rkt`

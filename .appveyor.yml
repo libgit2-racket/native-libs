@@ -11,8 +11,12 @@ environment:
   CYGPATH: cygpath -u # used by download-racket.sh on Windows
   RACKET_DIR: ~/racket # used by install-racket.sh on Ubuntu
 
+# only build commits where the message starts with "BUILD"
+only_commits:
+  message: /^BUILD/
+
 ############################################################################
-# os- and sometimes platform-specific configuration
+# os- and platform-specific configuration
 
 for:
   -

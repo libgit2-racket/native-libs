@@ -3,7 +3,7 @@ image:
 
 platform:
   - x64
-#  - x86 # TODO support in download-racket.sh
+  - x86
 
 environment:
   RACKET_VERSION: 7.2
@@ -36,22 +36,45 @@ install:
   - git submodule init
   - git submodule update
 
-# install Racket
-before_build:
-  - git clone https://github.com/liberalartist/appveyor-racket.git C:\a-r
-  - bash C:\a-r\download-racket.sh C:\install-racket.exe
-  - C:\install-racket.exe /S /D=C:\racket
-  - set PATH=%PATH%;C:\racket\
+############################################################################
+# os-specific commands to install Racket & install package for testing
+for:
+  -
+    matrix:
+      only:
+        - image: Visual Studio 2017
+        
+    before_build:
+      - git clone https://github.com/liberalartist/appveyor-racket.git C:\a-r
+      - bash C:\a-r\download-racket.sh C:\install-racket.exe
+      - C:\install-racket.exe /S /D=C:\racket
+      - set PATH=%PATH%;C:\racket\
 
+    before_test:
+      - raco pkg install -i --link %PKG_DIR%
+      
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+        
+    before_build:
+      - echo todo
+      - exit 1
+
+    before_test:
+      - raco pkg install -i --link "$PKG_DIR"
+
+############################################################################
 # build libgit2
 build_script:
   - racket make-libgit2.rkt
 
+# test that the package works
 test_script:
-  - cd $(PKG_DIR)
-  - raco pkg install -i
-  - racket ../test-script.rkt
+  - racket test-script.rkt
 
+# save the build package
 artifacts:
   - path: $(PKG_DIR)
 

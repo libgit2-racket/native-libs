@@ -6,6 +6,12 @@ platform:
   - x86
   - x64
 
+# apparently AppVeyor doesn't actually have i386 Windows VMs
+matrix:
+  exclude:
+    - image: Visual Studio 2017
+      platform: x86
+
 environment:
   RACKET_VERSION: 7.2
   CYGPATH: cygpath -u # used by download-racket.sh on Windows
@@ -41,23 +47,6 @@ for:
 
     test_script: &common_test_script
       - racket test-script.rkt
-
-  -
-    matrix:
-      only:
-        - image: Visual Studio 2017
-          platform: x86
-
-    environment:
-      PKG_DIR: libgit2-win32-i386
-
-    before_build: *windows_before_build
-
-    build_script: *common_build_script
-
-    before_test: *windows_before_test
-
-    test_script: *common_test_script
       
   -
     matrix:

@@ -15,8 +15,6 @@ at the root of this repository:
 
     - `libgit2-win32-x86_64`
 
-    - `libgit2-win32-i386`
-
 The root of this repository is not itself a Racket package:
 it contains support for building the packages listed above.
 

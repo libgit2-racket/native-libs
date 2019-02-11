@@ -36,7 +36,7 @@ for:
     build_script: &common_build_script
       - racket make-libgit2.rkt
 
-    before_test:
+    before_test: &windows_before_test
       - raco pkg install -i --link %PKG_DIR%
 
     test_script: &common_test_script
@@ -55,8 +55,7 @@ for:
 
     build_script: *common_build_script
 
-    before_test:
-      - raco pkg install -i --link libgit2-win32-i386
+    before_test: *windows_before_test
 
     test_script: *common_test_script
       

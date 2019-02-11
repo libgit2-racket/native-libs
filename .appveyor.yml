@@ -33,6 +33,7 @@ for:
 
     environment:
       PKG_DIR: libgit2-win32-x86_64
+      RKT_GIT_NO_CTEST: NO_CTEST # for fast debugging only
 
     before_build: &windows_before_build
       - git clone https://github.com/liberalartist/appveyor-racket.git C:\a-r

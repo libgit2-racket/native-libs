@@ -205,7 +205,11 @@
         (cmake (bytes-append #"-DCMAKE_BUILD_TYPE=" cmake-build-type)
                src)
         (cmake #"--build" build-dir)
-        (ctest #"-V"))
+        (cond
+          [(getenv "RKT_GIT_NO_CTEST")
+           => (λ (x) (eprintf "~a: skipping tests; RKT_GIT_NO_CTEST=~e\n" who x))]
+          [else
+           (ctest #"-V")]))
       (call-with-output-file* .src-status
         #:exists 'truncate/replace
         (λ (out) (write-string (get-current-src-status) out))))

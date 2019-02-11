@@ -45,9 +45,6 @@
 (module+ main
   (require racket/cmdline)
   (printf "> (system-library-subpath #f)\n  ~v\n" (system-library-subpath #f))
-  (for ([p (in-list '("win32\\x86_64" "win32\\i386"))])
-    (printf "(matching-platform? ~v)\n  ~v\n" (matching-platform? p)))
-  (exit 1)
   (let ([lib? #t]
         [info? #t]
         [force? #f])

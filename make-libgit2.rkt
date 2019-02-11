@@ -209,7 +209,7 @@
         #:exists 'truncate/replace
         (λ (out) (write-string (get-current-src-status) out))))
     (when (or must-compile? must-copy?)
-      (printf "~a\n~a\n\n\n~a~a~a\n\n\n~a\n~a"
+      (printf "~a\n~a\n\n\n~a~a~a\n\n\n~a\n~a\n"
               sep sep
               (if must-compile? (format "~a: build finished" who) "")
               (if (and must-compile? must-copy?) "\n" "")
@@ -224,7 +224,7 @@
   ;; make the info.rkt file
   (when info?
     (define info.rkt (build-path pkg-dir "info.rkt"))
-    (printf "~a\n~a\n\n\n~a: writing \"info.rkt\"\n  to: ~e\n\n\n~a\n~a"
+    (printf "~a\n~a\n\n\n~a: writing \"info.rkt\"\n  to: ~e\n\n\n~a\n~a\n"
             sep sep who info.rkt sep sep)
     (call-with-output-file* info.rkt
       #:exists 'truncate/replace

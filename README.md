@@ -11,8 +11,6 @@ at the root of this repository:
     
 - `libgit2-x86_64-linux`
 
-- `libgit2-i386-linux` *(currently fails test)*
-
 - `libgit2-win32-x86_64` *(currently fails test)*
 
 The root of this repository is not itself a Racket package:

@@ -9,7 +9,6 @@ platform:
 environment:
   RACKET_VERSION: 7.2
   CYGPATH: cygpath -u # used by download-racket.sh on Windows
-  RACKET_DIR: ~/racket # used by install-racket.sh on Ubuntu
 
 # only build commits where the message starts with "BUILD"
 only_commits:
@@ -71,6 +70,7 @@ for:
         
     before_build: &linux_before_build
       - git clone --branch i386 https://github.com/liberalartist/travis-racket.git ~/travis-racket
+      - export RACKET_DIR="~/racket"
       - cat ~/travis-racket/install-racket.sh | bash # pipe to bash not sh!
       - export PATH="${RACKET_DIR}/bin:${PATH}" #install-racket.sh can't set for us
 

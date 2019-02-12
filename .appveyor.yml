@@ -40,7 +40,7 @@ for:
       - bash C:\a-r\download-racket.sh C:\install-racket.exe
       - C:\install-racket.exe /S /D=C:\racket
       - set PATH=%PATH%;C:\racket\
-      - get-command "C:\racket\racket.exe" | format-list
+      - ps: get-command "C:\racket\racket.exe" | format-list
 
 
     build_script: &common_build_script

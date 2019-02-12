@@ -46,7 +46,7 @@ for:
 
     before_test: &windows_before_test
       - ps: get-command "C:\projects\native-libgit2-pkgs\build\win32\x86_64\Debug\git2.dll" | format-list
-      - python3 py-w64-test-tmp.py
+      - C:\Python37-x64 py-w64-test-tmp.py
       - raco test tmp-w64-test.rkt
       - raco pkg install -i --link %PKG_DIR%
 

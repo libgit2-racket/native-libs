@@ -203,6 +203,8 @@
       (parameterize ([current-directory build-dir]
                      [current-input-port (open-input-bytes #"")])
         (cmake (bytes-append #"-DCMAKE_BUILD_TYPE=" cmake-build-type)
+               (bytes-append #"-DCMAKE_INSTALL_PREFIX="
+                             (path->bytes pkg-dir))
                src)
         (cmake #"--build" build-dir)
         (cond
@@ -214,23 +216,22 @@
         #:exists 'truncate/replace
         (λ (out) (write-string (get-current-src-status) out))))
     (when (or must-compile? must-copy?)
-      (printf "~a\n~a\n\n\n~a~a~a\n\n\n~a\n~a\n"
+      (printf "~a\n~a\n\n\n~a~a~a\n\n\n\n"
               sep sep
               (if must-compile? (format "~a: build finished" who) "")
               (if (and must-compile? must-copy?) "\n" "")
               (if must-copy?
                   (format "~a: copying\n  from: ~e\n  to: ~e"
                           who build-dir-so pkg-dir-so)
-                  "")
-              sep sep))
+                  "")))
     ;; copy if needed
     (when must-copy?
       (copy-file build-dir-so pkg-dir-so 'replace)))
   ;; make the info.rkt file
   (when info?
     (define info.rkt (build-path pkg-dir "info.rkt"))
-    (printf "~a\n~a\n\n\n~a: writing \"info.rkt\"\n  to: ~e\n\n\n~a\n~a\n"
-            sep sep who info.rkt sep sep)
+    (printf "~a\n~a\n\n\n~a: writing \"info.rkt\"\n  to: ~e\n\n\n\n"
+            sep sep who info.rkt)
     (call-with-output-file* info.rkt
       #:exists 'truncate/replace
       (λ (out)

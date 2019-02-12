@@ -2,5 +2,5 @@
 
 (require ffi/unsafe)
 
-(ffi-lib @string->path{C:\projects\native-libgit2-pkgs\build\win32\x86_64\Debug\git2.dll}
+(ffi-lib @string->path{C:\projects\native-libgit2-pkgs\libgit2-win32-x86_64\git2.dll}
          '(#f))

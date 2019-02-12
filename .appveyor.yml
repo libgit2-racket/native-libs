@@ -62,7 +62,7 @@ for:
       PKG_DIR: libgit2-x86_64-linux
         
     before_build: &linux_before_build
-      - git clone --branch i386 https://github.com/liberalartist/travis-racket.git ~/travis-racket
+      - git clone https://github.com/greghendershott/travis-racket.git ~/travis-racket
       - export RACKET_DIR=~/racket
       - cat ~/travis-racket/install-racket.sh | bash # pipe to bash not sh!
       - export PATH="${RACKET_DIR}/bin:${PATH}" #install-racket.sh can't set for us

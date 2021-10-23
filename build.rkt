@@ -7,12 +7,13 @@
 (require racket/runtime-path)
 
 (define platforms
-  '((x86_64 linux)
+  '(#;(x86_64 linux)
     (x86_64 win32)
-    (i386 win32)))
+    #;(i386 win32)))
 
 
 (define-runtime-path deps.scm "deps.scm")
+(define-runtime-path manifest-mingw.scm "manifest-mingw.scm")
 (define here (path-only deps.scm))
 (define workspace (build-path here "workspace"))
 
@@ -36,6 +37,25 @@
 (define linux-flags
   (list* (-D "USE_HTTPS" "OpenSSL-Dynamic") ;; hopefully will find natipkg or recent-enough system lib
          common-flags))
+(define windows-flags
+  (list* common-flags))
+
+(define platform->target-toolchain
+  (match-lambda
+    ['(x86_64 win32)
+     "x86_64-w64-mingw32"]
+    ['(i386 win32)
+     "i686-w64-mingw32"]
+    [_
+     #f]))
+
+(define (environment-variables-for-platform platform)
+  (define env (environment-variables-copy (current-environment-variables)))
+  (environment-variables-set!
+   env
+   #"RKT_LIBGIT2_TARGET"
+   (string->bytes/locale (platform->target-toolchain platform)))
+  env)
 
 (define no-in (open-input-bytes #""))
 (define (invoke . args)
@@ -49,10 +69,17 @@
       [code
        (error 'invoke "command ~e failed (code ~e)" (car args) code)])))
 
-(parameterize ([current-directory here])
-  (for ([platform (in-list platforms)]
-        #:when (memq (cadr platform) '(linux)))
+;; cmake -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc -DDLLTOOL=x86_64-w64-mingw32-dlltool ../src/
+;; ^ this works, sans-Guix
+
+(for ([platform (in-list platforms)]
+      #:when (memq (cadr platform) '(linux win32)))
+  (parameterize ([current-directory here]
+                 [current-environment-variables (environment-variables-for-platform platform)])
     (match-define (list arch os) platform)
+    (define linux? (eq? 'linux os))
+    (define host? (equal? platform '(x86_64 linux)))
+    (define toolchain (platform->target-toolchain platform))
     (define target (format "~a-~a" arch os))
     (define target-dir (build-path workspace target))
     (define-syntax-rule (define-dir name elem0 elem ...)
@@ -62,17 +89,35 @@
     (define-dir prefix-dir "prefix-other")
     (define-dir lib-dir "lib")
     (define-dir pkg-dir "pkg")
+    (define-values [configure-flags manifest-flags]
+      (if linux?
+          (values linux-flags `("-l" ,deps.scm))
+          (values windows-flags `("-m" ,manifest-mingw.scm))))
+    (define cross-config-flags
+      (if host?
+          null
+          (list (-D "CMAKE_SYSTEM_NAME" (if linux? "Linux" "Windows"))
+                ;(-D "CMAKE_LIBRARY_PATH" "/home/philip/.guix-profile/lib/")
+                (-D "CMAKE_RC_COMPILER" (string-append toolchain "-windres"))
+                (-D "DLLTOOL" (string-append toolchain "dlltool"))
+                ;(-D "CMAKE_C_COMPILER_ID" "GNU")
+                ;(-D "CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES" "/home/philip/.guix-profile/include")
+                (-D "CMAKE_FIND_ROOT_PATH" "/home/philip/.guix-profile")
+                (-D "CMAKE_FIND_ROOT_PATH_MODE_INCLUDE" "ONLY")
+                (-D "CMAKE_C_COMPILER" (string-append toolchain "-gcc"))
+                (-D "CMAKE_CXX_COMPILER" (string-append toolchain "-g++")))))
     (define guix-env
-      (curry invoke guix "environment" "--pure" "--container" "-l" deps.scm))
+      (curry invoke guix "environment" "--pure" "--container" "--link-profile" manifest-flags))
     (guix-env "--"
               "cmake"
-              linux-flags
+              cross-config-flags
+              configure-flags
               (-D "CMAKE_INSTALL_PREFIX" prefix-dir)
               (-D "CMAKE_INSTALL_LIBDIR" lib-dir)
               "-S" "src"
               "-B" build-dir)
     (guix-env "--" "cmake" "--build" build-dir)
-    (when (equal? platform '(x86_64 linux))
+    (when host?
       (guix-env "--ad-hoc" "openssl"
                 "--"
                 "bash"

@@ -99,11 +99,12 @@
           (list (-D "CMAKE_SYSTEM_NAME" (if linux? "Linux" "Windows"))
                 ;(-D "CMAKE_LIBRARY_PATH" "/home/philip/.guix-profile/lib/")
                 (-D "CMAKE_RC_COMPILER" (string-append toolchain "-windres"))
-                (-D "DLLTOOL" (string-append toolchain "dlltool"))
+                (-D "DLLTOOL" (string-append toolchain "-dlltool"))
                 ;(-D "CMAKE_C_COMPILER_ID" "GNU")
                 ;(-D "CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES" "/home/philip/.guix-profile/include")
-                (-D "CMAKE_FIND_ROOT_PATH" "/home/philip/.guix-profile")
-                (-D "CMAKE_FIND_ROOT_PATH_MODE_INCLUDE" "ONLY")
+                #;(-D "CMAKE_FIND_ROOT_PATH" "/home/philip/.guix-profile")
+                #;(-D "CMAKE_FIND_ROOT_PATH_MODE_INCLUDE" "ONLY")
+                PKG_CONFIG_EXECUTABLE
                 (-D "CMAKE_C_COMPILER" (string-append toolchain "-gcc"))
                 (-D "CMAKE_CXX_COMPILER" (string-append toolchain "-g++")))))
     (define guix-env
@@ -146,3 +147,15 @@
 ;USE_SSH=OFF
 ;USE_HTTPS=OpenSSL-Dynamic
 ;ENABLE_REPRODUCIBLE_BUILDS=ON
+#|
+philip@bastet:~/code/pkgs/native-libgit2-pkgs/tmp$ x86_64-w64-mingw32-gcc -print-search-dirs
+install: /usr/lib/gcc/x86_64-w64-mingw32/10-win32/
+programs: =/usr/lib/gcc/x86_64-w64-mingw32/10-win32/:/usr/lib/gcc/x86_64-w64-mingw32/10-win32/:/usr/lib/gcc/x86_64-w64-mingw32/:/usr/lib/gcc/x86_64-w64-mingw32/10-win32/:/usr/lib/gcc/x86_64-w64-mingw32/:/usr/lib/gcc/x86_64-w64-mingw32/10-win32/../../../../x86_64-w64-mingw32/bin/x86_64-w64-mingw32/10-win32/:/usr/lib/gcc/x86_64-w64-mingw32/10-win32/../../../../x86_64-w64-mingw32/bin/
+libraries: =/usr/lib/gcc/x86_64-w64-mingw32/10-win32/:/usr/lib/gcc/x86_64-w64-mingw32/10-win32/../../../../x86_64-w64-mingw32/lib/x86_64-w64-mingw32/10-win32/:/usr/lib/gcc/x86_64-w64-mingw32/10-win32/../../../../x86_64-w64-mingw32/lib/
+
+philip@bastet:~/code/pkgs/native-libgit2-pkgs$ guix environment --pure --container -m manifest-mingw.scm --link-profile -- x86_64-w64-mingw32-gcc -print-search-dirs 
+install: /gnu/store/yjj14l63gq5p9ymv0g61kx53xphpvcfl-gcc-cross-x86_64-w64-mingw32-7.5.0-lib/lib/gcc/x86_64-w64-mingw32/7.5.0/
+programs: =/gnu/store/ll5b1jhd616qpv1ph57bqr4c238slb1p-gcc-cross-x86_64-w64-mingw32-7.5.0/libexec/gcc/x86_64-w64-mingw32/7.5.0/:/gnu/store/ll5b1jhd616qpv1ph57bqr4c238slb1p-gcc-cross-x86_64-w64-mingw32-7.5.0/libexec/gcc/x86_64-w64-mingw32/7.5.0/:/gnu/store/ll5b1jhd616qpv1ph57bqr4c238slb1p-gcc-cross-x86_64-w64-mingw32-7.5.0/libexec/gcc/x86_64-w64-mingw32/:/gnu/store/yjj14l63gq5p9ymv0g61kx53xphpvcfl-gcc-cross-x86_64-w64-mingw32-7.5.0-lib/lib/gcc/x86_64-w64-mingw32/7.5.0/:/gnu/store/yjj14l63gq5p9ymv0g61kx53xphpvcfl-gcc-cross-x86_64-w64-mingw32-7.5.0-lib/lib/gcc/x86_64-w64-mingw32/:/gnu/store/yjj14l63gq5p9ymv0g61kx53xphpvcfl-gcc-cross-x86_64-w64-mingw32-7.5.0-lib/lib/gcc/x86_64-w64-mingw32/7.5.0/../../../../x86_64-w64-mingw32/bin/x86_64-w64-mingw32/7.5.0/:/gnu/store/yjj14l63gq5p9ymv0g61kx53xphpvcfl-gcc-cross-x86_64-w64-mingw32-7.5.0-lib/lib/gcc/x86_64-w64-mingw32/7.5.0/../../../../x86_64-w64-mingw32/bin/
+libraries: =/gnu/store/yjj14l63gq5p9ymv0g61kx53xphpvcfl-gcc-cross-x86_64-w64-mingw32-7.5.0-lib/lib/gcc/x86_64-w64-mingw32/7.5.0/:/gnu/store/yjj14l63gq5p9ymv0g61kx53xphpvcfl-gcc-cross-x86_64-w64-mingw32-7.5.0-lib/lib/gcc/x86_64-w64-mingw32/7.5.0/../../../../x86_64-w64-mingw32/lib/x86_64-w64-mingw32/7.5.0/:/gnu/store/yjj14l63gq5p9ymv0g61kx53xphpvcfl-gcc-cross-x86_64-w64-mingw32-7.5.0-lib/lib/gcc/x86_64-w64-mingw32/7.5.0/../../../../x86_64-w64-mingw32/lib/:/mingw/lib/x86_64-w64-mingw32/7.5.0/:/mingw/lib/
+
+|#

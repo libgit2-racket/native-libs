@@ -22,21 +22,30 @@
   (arguments
    (substitute-keyword-arguments (package-arguments libgit2)
      ((#:configure-flags _ '())
-      `(list "-DREGEX_BACKEND=builtin"
-             "-DUSE_HTTP_PARSER=builtin"
-             "-DUSE_BUNDLED_ZLIB=ON"
-             "-DUSE_NTLMCLINT=OFF"
-             "-DUSE_SSH=OFF"
-             "-DUSE_HTTPS=OpenSSL-Dynamic"
-             ;; This part copied from the Guix package, because
-             ;; it's tricky to filter from the inherited arguments:
-             ,@(if (%current-target-system)
-                   `((string-append
-                      "-DPKG_CONFIG_EXECUTABLE="
-                      (assoc-ref %build-inputs "pkg-config")
-                      "/bin/" ,(%current-target-system) "-pkg-config"))
-                   '())))
+      (let* ((target (%current-target-system))
+             (windows? (and target (string-contains target "mingw"))))
+        `(list "-DREGEX_BACKEND=builtin"
+               "-DUSE_HTTP_PARSER=builtin"
+               "-DUSE_BUNDLED_ZLIB=ON"
+               "-DUSE_NTLMCLINT=OFF"
+               "-DUSE_SSH=OFF"
+               ,@(if windows?
+                     (list (string-append "-DDLLTOOL=" target "-dlltool")
+                           (string-append "-DCMAKE_RC_COMPILER="
+                                          target "-windres")
+                           ;; TODO use's racket's openssl
+                           )
+                     (list "-DUSE_HTTPS=OpenSSL-Dynamic"))
+               ;; This part copied from the Guix package, because
+               ;; it's tricky to filter from the inherited arguments:
+               ,@(if (%current-target-system)
+                     `((string-append
+                        "-DPKG_CONFIG_EXECUTABLE="
+                        (assoc-ref %build-inputs "pkg-config")
+                        "/bin/" ,(%current-target-system) "-pkg-config"))
+                     '()))))
      ((#:tests? _ #f)
+      ;; error trying to write
       #f)
      #;
      ((#:phases usual-phases)

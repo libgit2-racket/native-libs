@@ -1,7 +1,8 @@
 #lang racket
 ;; SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-(define so-version "1.3.0")
+(define so-version "1.3")
+(define pkg-version "0.0")
 
 (require racket/runtime-path)
 
@@ -31,7 +32,7 @@
         (-D "USE_BUNDLED_ZLIB" "ON")
         (-D "USE_NTLMCLIENT" "OFF")
         (-D "USE_SSH" "OFF")
-        #;(-D "DEPRECATE_HARD" "ON")))
+        (-D "DEPRECATE_HARD" "ON")))
 (define linux-flags
   (list* (-D "USE_HTTPS" "OpenSSL-Dynamic") ;; hopefully will find natipkg or recent-enough system lib
          common-flags))
@@ -60,6 +61,7 @@
     (define-dir build-dir "build")
     (define-dir prefix-dir "prefix-other")
     (define-dir lib-dir "lib")
+    (define-dir pkg-dir "pkg")
     (define guix-env
       (curry invoke guix "environment" "--pure" "--container" "-l" deps.scm))
     (guix-env "--"
@@ -77,7 +79,13 @@
                 "-c"
                 (bytes-append #"LD_LIBRARY_PATH=$LIBRARY_PATH "
                               (path->bytes (build-path build-dir "libgit2_clar")))))
-    (guix-env "--" "cmake" "--build" build-dir "--target" "install")))
+    (guix-env "--" "cmake" "--build" build-dir "--target" "install")
+    (define so-file
+      (string-append-immutable "libgit2.so." so-version))
+    (copy-file (build-path lib-dir so-file)
+               (build-path pkg-dir so-file))
+    (invoke guix "environment" "--pure" "--container" "--ad-hoc" "patchelf"
+            "--" "patchelf" "--remove-rpath" (build-path pkg-dir so-file))))
 
 
 ;; raco cross --workspace workspace/x86_64-linux/racket/ --target x86_64-linux

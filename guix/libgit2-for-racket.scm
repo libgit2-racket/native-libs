@@ -50,6 +50,20 @@
 copied into native @code{libgit2} Racket packages.")
     (license (package-license libgit2))))
 
+
+(define-public (target->system-flags target)
+  (cond
+   ((and target (string-contains target "mingw"))
+    `(,(string-append "-DDLLTOOL=" target "-dlltool")
+      ,(string-append "-DCMAKE_RC_COMPILER=" target "-windres")
+      ;; TODO use's racket's openssl
+      "-DCMAKE_C_FLAGS=-static-libgcc"
+      "-DCMAKE_CXX_FLAGS=-static-libgcc -static-libstdc++"
+      "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc -static-libstdc++"
+      "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc -static-libstdc++"))
+   (else
+    `("-DUSE_HTTPS=OpenSSL-Dynamic"))))
+
 (define-public libgit2-for-racket
   (package
     (inherit libgit2)
@@ -59,28 +73,14 @@ copied into native @code{libgit2} Racket packages.")
     (propagated-inputs `())
     (arguments
      (substitute-keyword-arguments (package-arguments libgit2)
-       ((#:configure-flags _ '())
-        (let* ((target (%current-target-system))
-               (windows? (and target (string-contains target "mingw"))))
-          `(list ,@%common-configure-flags
-                 ,@(if windows?
-                       (list (string-append "-DDLLTOOL=" target "-dlltool")
-                             (string-append "-DCMAKE_RC_COMPILER="
-                                            target "-windres")
-                             ;; TODO use's racket's openssl
-                             "-DCMAKE_C_FLAGS=-static-libgcc"
-                             "-DCMAKE_CXX_FLAGS=-static-libgcc -static-libstdc++"
-                             "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc -static-libstdc++"
-                             "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc -static-libstdc++")
-                       (list "-DUSE_HTTPS=OpenSSL-Dynamic"))
-                 ;; This part copied from the Guix package, because
-                 ;; it's tricky to filter from the inherited arguments:
-                 ,@(if (%current-target-system)
-                       `((string-append
-                          "-DPKG_CONFIG_EXECUTABLE="
-                          (assoc-ref %build-inputs "pkg-config")
-                          "/bin/" ,(%current-target-system) "-pkg-config"))
-                       '()))))
+       ((#:configure-flags std-cfg-flags '())
+        `(append
+          ',(target->system-flags (%current-target-system))
+          ',%common-configure-flags
+          (let ((flags ,std-cfg-flags))
+            (filter (lambda (s)
+                      (string-prefix? "-DPKG_CONFIG_EXECUTABLE=" s))
+                    flags))))
        ((#:tests? _ #f)
         ;; error trying to write
         #f)

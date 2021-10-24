@@ -4,6 +4,7 @@
 (require racket/runtime-path
          (only-in racket/base
                   [string-append-immutable ++])
+         "guix/racket-libgit2-build-constants.scm"
          racket/symbol)
 
 (define so-version "1.3")

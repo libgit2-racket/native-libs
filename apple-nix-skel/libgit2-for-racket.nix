@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> {}
 , rktLibgit2Version
-, rktLibgit2Checksum ? "0vgpb2175a5dhqiy1iwywwppahgqhi340i8bsvafjpvkw284vazd"
+, rktLibgit2Checksum
 , rktLibgit2CommonCmakeFlags ? []
 , rktLibgit2FetchGitUrl ? "https://github.com/libgit2/libgit2"
 , rktLibgit2Rev ? "v${rktLibgit2Version}"

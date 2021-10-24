@@ -1,7 +1,9 @@
 (define-module (libgit2-for-racket)
   #:use-module (guix)
+  #:use-module (guix gexp)
   #:use-module (guix git-download)
   #:use-module (guix build-system copy)
+  #:use-module (gnu packages)
   #:use-module (gnu packages version-control)
   #:use-module (racket-libgit2-build-constants))
 
@@ -14,6 +16,28 @@
     (method url-fetch)
     (uri %nixpkgs-url)
     (sha256 (base32 %nixpkgs-checksum))))
+
+(define-public repo-root-dir
+  (string-append
+   (dirname (search-path %load-path "libgit2-for-racket.scm"))
+   "/.."))
+
+(define-public apple-nix-skel
+  ;; TODO: How to get path resolution relative to this file,
+  ;; rather than the working directory, at runtime?
+  ;; Using a string literal did not work.
+  (local-file (string-append repo-root-dir "/apple-nix-skel")
+              #:recursive? #t))
+  
+(define-public apple-nix-config
+  (file-union
+   "apple-nix-config"
+   `(("nixexprs.tar.xz" ,pinned-nixpkgs))))
+
+(define-public apple-nix-bundle
+  (directory-union
+   "apple-nix-bundle"
+   (list apple-nix-skel apple-nix-config)))
 
 (define-public libgit2-origin
   (origin

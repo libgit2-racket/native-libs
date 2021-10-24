@@ -5,6 +5,7 @@
   #:use-module (guix build-system copy)
   #:use-module (gnu packages)
   #:use-module (gnu packages version-control)
+  #:use-module (ice-9 match)
   #:use-module (racket-libgit2-build-constants))
 
 ;; We are NOT configuring with "-DDEPRECATE_HARD=ON"
@@ -28,11 +29,43 @@
   ;; Using a string literal did not work.
   (local-file (string-append repo-root-dir "/apple-nix-skel")
               #:recursive? #t))
-  
+
+(define-public rktLibgit2CommonCmakeFlags.nix
+  (plain-file
+   "rktLibgit2CommonCmakeFlags.nix"
+   (match %common-configure-flags
+     (()
+      "[]\n")
+     ((flag0 . flags)
+      (string-concatenate
+       (append
+        (list (format #f "[ ~s\n" flag0))
+        (map (lambda (flag)
+               (format #f "  ~s\n" flag))
+             flags)
+        '("]\n")))))))
+
+(define libgit2-for-racket-with-config.nix
+  (plain-file
+   "libgit2-for-racket-with-config.nix"
+   (string-append
+    "import ./libgit2-for-racket.nix rec {\n"
+    "  pkgs = import ./nixexprs.tar.xz {};\n"
+    "  rktLibgit2Version = \"" %libgit2-version "\";\n"
+    "  rktLibgit2Checksum = \"" %libgit2-checksum "\";\n"
+    "  rktLibgit2CommonCmakeFlags = ./rktLibgit2CommonCmakeFlags.nix;\n"
+    "  rktLibgit2FetchGitUrl = \"" %libgit2-origin-git-url "\";\n"
+    "  rktLibgit2Rev = \"" %libgit2-origin-commit "\";\n"
+    "}")))
+
 (define-public apple-nix-config
   (file-union
    "apple-nix-config"
-   `(("nixexprs.tar.xz" ,pinned-nixpkgs))))
+   `(("nixexprs.tar.xz" ,pinned-nixpkgs)
+     ("libgit2-for-racket-with-config.nix"
+      ,libgit2-for-racket-with-config.nix)
+     ("rktLibgit2CommonCmakeFlags.nix"
+      ,rktLibgit2CommonCmakeFlags.nix))))
 
 (define-public apple-nix-bundle
   (directory-union

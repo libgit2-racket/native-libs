@@ -1,7 +1,12 @@
 (define-module (libgit2-for-racket)
   #:use-module (guix)
   #:use-module (guix git-download)
+  #:use-module (guix build-system copy)
   #:use-module (gnu packages version-control))
+
+;; We are NOT configuring with "-DDEPRECATE_HARD=ON"
+;; for now, because we want to get things to build and
+;; the test suite to pass.
 
 (define-public %libgit2-version "1.3.0")
 
@@ -18,11 +23,34 @@
      (origin-patches (package-source libgit2)))
     (file-name (git-file-name "libgit2" %libgit2-version))))
 
+(define-public libgit2-shared-license-data
+  (package
+    (name "libgit2-shared-license-data")
+    (version %libgit2-version)
+    (source libgit2-origin)
+    (build-system copy-build-system)
+    (arguments
+     `(#:install-plan
+       `(("COPYING" "COPYING")
+         ("AUTHORS" "AUTHORS")
+         ("git.git-authors" "git.git-authors")
+         ("docs/changelog.md" "changelog.md")
+         ("SECURITY.md" "SECURITY.md"))
+       #:phases
+       (modify-phases %standard-phases
+         (delete 'install-license-files)
+         (delete 'compress-documentation))))
+    (home-page (package-home-page libgit2))
+    (synopsis "Files copied from the libgit2 repository")
+    (description
+     "This package contains license files and such that should be
+copied into native @code{libgit2} Racket packages.")
+    (license (package-license libgit2))))
 
 (define-public libgit2-for-racket
   (package
     (inherit libgit2)
-    (version "1.3.0")
+    (version %libgit2-version)
     (source libgit2-origin)
     (inputs `())
     (propagated-inputs `())
@@ -41,7 +69,10 @@
                              (string-append "-DCMAKE_RC_COMPILER="
                                             target "-windres")
                              ;; TODO use's racket's openssl
-                             )
+                             "-DCMAKE_C_FLAGS=-static-libgcc"
+                             "-DCMAKE_CXX_FLAGS=-static-libgcc -static-libstdc++"
+                             "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc -static-libstdc++"
+                             "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc -static-libstdc++")
                        (list "-DUSE_HTTPS=OpenSSL-Dynamic"))
                  ;; This part copied from the Guix package, because
                  ;; it's tricky to filter from the inherited arguments:

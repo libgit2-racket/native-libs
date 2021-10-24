@@ -2,23 +2,26 @@
   #:use-module (guix)
   #:use-module (guix git-download)
   #:use-module (guix build-system copy)
-  #:use-module (gnu packages version-control))
+  #:use-module (gnu packages version-control)
+  #:use-module (racket-libgit2-build-constants))
 
 ;; We are NOT configuring with "-DDEPRECATE_HARD=ON"
 ;; for now, because we want to get things to build and
 ;; the test suite to pass.
 
-(define-public %libgit2-version "1.3.0")
+(define-public pinned-nixpkgs
+  (origin
+    (method url-fetch)
+    (uri %nixpkgs-url)
+    (sha256 (base32 %nixpkgs-checksum))))
 
 (define-public libgit2-origin
   (origin
     (method git-fetch)
     (uri (git-reference
-          (url "https://github.com/libgit2/libgit2")
-          (commit (string-append "v" %libgit2-version))))
-    (sha256
-     (base32
-      "0vgpb2175a5dhqiy1iwywwppahgqhi340i8bsvafjpvkw284vazd"))
+          (url %libgit2-origin-git-url)
+          (commit %libgit2-origin-commit)))
+    (sha256 (base32 %libgit2-checksum))
     (patches
      (origin-patches (package-source libgit2)))
     (file-name (git-file-name "libgit2" %libgit2-version))))
@@ -59,11 +62,7 @@ copied into native @code{libgit2} Racket packages.")
        ((#:configure-flags _ '())
         (let* ((target (%current-target-system))
                (windows? (and target (string-contains target "mingw"))))
-          `(list "-DREGEX_BACKEND=builtin" ;; maybe via Racket, one day?
-                 "-DUSE_HTTP_PARSER=builtin"
-                 "-DUSE_BUNDLED_ZLIB=ON"
-                 "-DUSE_NTLMCLINT=OFF"
-                 "-DUSE_SSH=OFF"
+          `(list ,@%common-configure-flags
                  ,@(if windows?
                        (list (string-append "-DDLLTOOL=" target "-dlltool")
                              (string-append "-DCMAKE_RC_COMPILER="

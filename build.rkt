@@ -71,6 +71,12 @@
      (with-output-to-string
        (λ () (guix-build "libgit2-shared-license-data")))))))
 
+(define guix-channels.scm
+  (delay/sync
+   (++ ";; -*- mode: scheme; -*-\n"
+       (with-output-to-string
+         (λ () (invoke guix "describe" "-f" "channels"))))))
+
 (define read-only-permissions
   (bitwise-ior user-read-bit
                group-read-bit

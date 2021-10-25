@@ -12,66 +12,6 @@
 ;; for now, because we want to get things to build and
 ;; the test suite to pass.
 
-(define-public pinned-nixpkgs
-  (origin
-    (method url-fetch)
-    (uri %nixpkgs-url)
-    (sha256 (base32 %nixpkgs-checksum))))
-
-(define-public repo-root-dir
-  (string-append
-   (dirname (search-path %load-path "libgit2-for-racket.scm"))
-   "/.."))
-
-(define-public apple-nix-skel
-  ;; TODO: How to get path resolution relative to this file,
-  ;; rather than the working directory, at runtime?
-  ;; Using a string literal did not work.
-  (local-file (string-append repo-root-dir "/apple-nix-skel")
-              #:recursive? #t))
-
-(define-public rktLibgit2CommonCmakeFlags.nix
-  (plain-file
-   "rktLibgit2CommonCmakeFlags.nix"
-   (match %common-configure-flags
-     (()
-      "[]\n")
-     ((flag0 . flags)
-      (string-concatenate
-       (append
-        (list (format #f "[ ~s\n" flag0))
-        (map (lambda (flag)
-               (format #f "  ~s\n" flag))
-             flags)
-        '("]\n")))))))
-
-(define libgit2-for-racket-with-config.nix
-  (plain-file
-   "libgit2-for-racket-with-config.nix"
-   (string-append
-    "import ./libgit2-for-racket.nix rec {\n"
-    "  pkgs = import ./nixexprs.tar.xz {};\n"
-    "  rktLibgit2Version = \"" %libgit2-version "\";\n"
-    "  rktLibgit2Checksum = \"" %libgit2-checksum "\";\n"
-    "  rktLibgit2CommonCmakeFlags = ./rktLibgit2CommonCmakeFlags.nix;\n"
-    "  rktLibgit2FetchGitUrl = \"" %libgit2-origin-git-url "\";\n"
-    "  rktLibgit2Rev = \"" %libgit2-origin-commit "\";\n"
-    "}")))
-
-(define-public apple-nix-config
-  (file-union
-   "apple-nix-config"
-   `(("nixexprs.tar.xz" ,pinned-nixpkgs)
-     ("libgit2-for-racket-with-config.nix"
-      ,libgit2-for-racket-with-config.nix)
-     ("rktLibgit2CommonCmakeFlags.nix"
-      ,rktLibgit2CommonCmakeFlags.nix))))
-
-(define-public apple-nix-bundle
-  (directory-union
-   "apple-nix-bundle"
-   (list apple-nix-skel apple-nix-config)))
-
 (define-public libgit2-origin
   (origin
     (method git-fetch)

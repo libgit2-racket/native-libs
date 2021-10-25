@@ -7,6 +7,20 @@
          "guix/racket-libgit2-build-constants.scm"
          racket/symbol)
 
+;; install_name_tool -id libgit2.1.3.dylib libgit2.1.3.dylib
+#|
+hart:apple-nix-bundle philip$ objdump -macho --dylibs-used libgit2.1.3.dylib 
+libgit2.1.3.dylib:
+        libgit2.1.3.dylib (compatibility version 1.3.0, current version 1.3.0)
+        /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1238.60.2)
+        /nix/store/wa0kxp38vna4kig3s0m7wx7klq4rcsmx-libiconv-50/lib/libiconv.dylib (compatibility version 7.0.0, current version 7.0.0)
+hart:apple-nix-bundle philip$ install_name_tool -change /nix/store/wa0kxp38vna4kig3s0m7wx7klq4rcsmx-libiconv-50/lib/libiconv.dylib /usr/lib/libiconv.2.dylib libgit2.1.3.dylib 
+hart:apple-nix-bundle philip$ objdump -macho --dylibs-used libgit2.1.3.dylib libgit2.1.3.dylib:
+        libgit2.1.3.dylib (compatibility version 1.3.0, current version 1.3.0)
+        /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1238.60.2)
+        /usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)
+|#
+
 (define so-version "1.3")
 (define pkg-version "0.0")
 

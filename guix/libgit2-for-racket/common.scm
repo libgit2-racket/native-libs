@@ -1,5 +1,5 @@
 #!r6rs
-(library (racket-libgit2-build-constants)
+(library (libgit2-for-racket common)
   (export %racket-pkg-version
           %so-version
           %libgit2-version
@@ -7,7 +7,8 @@
           %libgit2-origin-commit
           %libgit2-origin-git-url
           ;; Nix
-          %nixpkgs-version
+          %nixpkgs-channel
+          %nixpkgs-release
           %nixpkgs-checksum
           %nixpkgs-url
           ;; configure flags
@@ -24,14 +25,18 @@
   (define %libgit2-origin-git-url
     "https://github.com/libgit2/libgit2")
 
-  (define %nixpkgs-version "21.05")
+  ;; https://status.nixos.org/
+  (define %nixpkgs-channel "21.05")
+  (define %nixpkgs-release-stamp "3916.3b1789322fc") ;; what is the integer before the commit?
   (define %nixpkgs-checksum
     "0a2rw6lqr8yw3i41vkgqr2swxjiazw88l0yxfzixi6hc3xi6s3lv")
+  (define %nixpkgs-release
+    (string-append "nixos-" %nixpkgs-channel "." %nixpkgs-release-stamp))
   (define %nixpkgs-url
     (string-append
-     "http://nixos.org/channels/nixos-" %nixpkgs-version
-     "/nixexprs.tar.xz"))
-
+     ;; TODO: check this
+     ;; https://releases.nixos.org/nixos/21.05/nixos-21.05.3916.3b1789322fc
+     "https://releases.nixos.org/nixos/" %nixpkgs-channel "/" %nixpkgs-release "/nixexprs.tar.xz"))
   (define %common-configure-flags
     `("-DREGEX_BACKEND=builtin" ;; maybe via Racket, one day?
       ;; re libssh2, see:
@@ -43,4 +48,8 @@
       "-DUSE_HTTP_PARSER=builtin"
       "-DUSE_BUNDLED_ZLIB=ON" ;; does Racket have one already?
       "-DUSE_NTLMCLINT=OFF"))
+
+  (define (apple-os? sym)
+    (eq? sym 'macosx))
+  
   #||#)

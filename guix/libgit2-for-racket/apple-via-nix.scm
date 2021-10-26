@@ -1,4 +1,4 @@
-(define-module (apple-libgit2-for-racket-via-nix)
+(define-module (libgit2-for-racket apple-via-nix)
   #:use-module (guix)
   #:use-module (guix gexp)
   #:use-module (guix build-system copy)
@@ -7,7 +7,7 @@
   #:use-module (gnu packages compression)
   #:use-module (ice-9 match)
   #:use-module (libgit2-for-racket)
-  #:use-module (racket-libgit2-build-constants))
+  #:use-module (libgit2-for-racket common))
 
 ;; nix show-config --json
 
@@ -18,7 +18,6 @@
     (method url-fetch)
     (uri %nixpkgs-url)
     (sha256 (base32 %nixpkgs-checksum))))
-
 
 (define-public repo-root-dir
   (string-append
@@ -31,35 +30,6 @@
   ;; Using a string literal did not work.
   (local-file (string-append repo-root-dir "/apple-nix-skel")
               #:recursive? #t))
-#|
-(define-public rktLibgit2CommonCmakeFlags.nix
-  (plain-file
-   "rktLibgit2CommonCmakeFlags.nix"
-   (match %common-configure-flags
-     (()
-      "[]\n")
-     ((flag0 . flags)
-      (string-concatenate
-       (append
-        (list (format #f "[ ~s\n" flag0))
-        (map (lambda (flag)
-               (format #f "  ~s\n" flag))
-             flags)
-        '("]\n")))))))
-
-(define default.nix
-  (plain-file
-   "default.nix"
-   (string-append
-    "import ./libgit2-for-racket.nix rec {\n"
-    #;"  pkgs = import ./nixexprs.tar.xz {};\n"
-    "  rktLibgit2Version = \"" %libgit2-version "\";\n"
-    "  rktLibgit2Checksum = \"" %libgit2-checksum "\";\n"
-    "  rktLibgit2CommonCmakeFlags = import ./rktLibgit2CommonCmakeFlags.nix;\n"
-    "  rktLibgit2FetchGitUrl = \"" %libgit2-origin-git-url "\";\n"
-    "  rktLibgit2Rev = \"" %libgit2-origin-commit "\";\n"
-    "}")))
-|#
 
 (define (extracted-.tar.xz-directory name pth.tar.xz)
   (computed-file
@@ -79,17 +49,24 @@
   (file-union
    "apple-nix-config"
    `(("nixpkgs" ,(extracted-.tar.xz-directory
-                  "nixpkgs"
+                  %nixpkgs-release
                   pinned-nixpkgs))
      ("src" ,(extracted-.tar.xz-directory
               "libgit2-src"
               libgit2-origin))
-     #;
-     ("default.nix"
-     ,default.nix)
-     #;
-     ("rktLibgit2CommonCmakeFlags.nix"
-      ,rktLibgit2CommonCmakeFlags.nix))))
+     ("args.nix" ,(plain-file
+                   "args.nix"
+                   (string-append
+                    "{ pkgs = ./nixpkgs;\n"
+                    "  rktLibgit2Version = \"" %libgit2-version "\";\n"
+                    "  rktLibgit2Src = ./src;\n"
+                    "  rktLibgit2CommonFlags = [\n"
+                    (string-concatenate
+                     (map (lambda (flag)
+                            (format #f "    ~s\n" flag))
+                          %common-configure-flags))
+                    "  ];\n"
+                    "};\n"))))))
 
 (define-public apple-nix-bundle
   (directory-union

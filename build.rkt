@@ -4,7 +4,7 @@
 (require racket/runtime-path
          (only-in racket/base
                   [string-append-immutable ++])
-         "guix/racket-libgit2-build-constants.scm"
+         "guix/libgit2-for-racket/common.scm"
          racket/symbol)
 
 ;; install_name_tool -id libgit2.1.3.dylib libgit2.1.3.dylib
@@ -21,8 +21,6 @@ hart:apple-nix-bundle philip$ objdump -macho --dylibs-used libgit2.1.3.dylib lib
         /usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)
 |#
 
-(define so-version "1.3")
-(define pkg-version "0.0")
 
 (module+ main
   (for-each build-target-here
@@ -54,11 +52,11 @@ hart:apple-nix-bundle philip$ objdump -macho --dylibs-used libgit2.1.3.dylib lib
 (define os->lib-filename
   (match-lambda
     ['win32
-     (++ "libgit2-" so-version ".dll")]
+     (++ "libgit2-" %so-version ".dll")]
     ['macosx
-     (++ "libgit2." so-version ".dylib")]
+     (++ "libgit2." %so-version ".dylib")]
     [_
-     (++ "libgit2.so." so-version)]))
+     (++ "libgit2.so." %so-version)]))
 
 (define no-in (open-input-bytes #""))
 (define (invoke . args)
@@ -113,7 +111,7 @@ hart:apple-nix-bundle philip$ objdump -macho --dylibs-used libgit2.1.3.dylib lib
   (define info
     `((define pkg-name ,(++ "libgit2-" arch-os))
       (define collection "libgit2")
-      (define version ,pkg-version)
+      (define version ,%racket-pkg-version)
       (define pkg-desc ,(++ "native libraries for \"libgit2\" on \"" arch-os "\""))
       (define pkg-authors '(philip))
       #\newline

@@ -6,7 +6,7 @@
   #:use-module (gnu packages)
   #:use-module (gnu packages version-control)
   #:use-module (ice-9 match)
-  #:use-module (racket-libgit2-build-constants))
+  #:use-module (libgit2-for-racket common))
 
 ;; We are NOT configuring with "-DDEPRECATE_HARD=ON"
 ;; for now, because we want to get things to build and
@@ -93,4 +93,3 @@ copied into native @code{libgit2} Racket packages.")
        (lambda _
        (mkdir-p "my-clar-tmp")
        (setenv "CLAR_TMP" "my-clar-tmp")))))))))
-

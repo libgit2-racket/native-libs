@@ -12,6 +12,19 @@
 ;; for now, because we want to get things to build and
 ;; the test suite to pass.
 
+(define-public (target->system-flags target)
+  (cond
+   ((and target (string-contains target "mingw"))
+    `(,(string-append "-DDLLTOOL=" target "-dlltool")
+      ,(string-append "-DCMAKE_RC_COMPILER=" target "-windres")
+      ;; TODO use's racket's openssl
+      "-DCMAKE_C_FLAGS=-static-libgcc"
+      "-DCMAKE_CXX_FLAGS=-static-libgcc -static-libstdc++"
+      "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc -static-libstdc++"
+      "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc -static-libstdc++"))
+   (else
+    `("-DUSE_HTTPS=OpenSSL-Dynamic"))))
+
 (define-public libgit2-origin
   (origin
     (method git-fetch)
@@ -46,20 +59,6 @@
      "This package contains license files and such that should be
 copied into native @code{libgit2} Racket packages.")
     (license (package-license libgit2))))
-
-
-(define-public (target->system-flags target)
-  (cond
-   ((and target (string-contains target "mingw"))
-    `(,(string-append "-DDLLTOOL=" target "-dlltool")
-      ,(string-append "-DCMAKE_RC_COMPILER=" target "-windres")
-      ;; TODO use's racket's openssl
-      "-DCMAKE_C_FLAGS=-static-libgcc"
-      "-DCMAKE_CXX_FLAGS=-static-libgcc -static-libstdc++"
-      "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc -static-libstdc++"
-      "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc -static-libstdc++"))
-   (else
-    `("-DUSE_HTTPS=OpenSSL-Dynamic"))))
 
 (define-public libgit2-for-racket
   (package

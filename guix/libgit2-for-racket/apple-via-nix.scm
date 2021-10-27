@@ -19,6 +19,75 @@
     (uri %nixpkgs-url)
     (sha256 (base32 %nixpkgs-checksum))))
 
+(define (extract-.tar.xz-directory-gexp pth.tar.xz)
+   (with-imported-modules
+       `((guix build utils))
+     #~(begin
+         (use-modules (guix build utils))
+         (mkdir-p #$output)
+         (chdir #$output)
+         (setenv "PATH" #+(file-append xz "/bin"))
+         (invoke #+(file-append tar "/bin/tar")
+                 "-xvf" #+pth.tar.xz
+                 "--strip-components=1"))))
+
+;; The pinned-nixpkgs tarball contains a symlink "nixpkgs" to ".".
+;; This cycle causes various complications. Some tools (e.g. at
+;; least some versions of scp) will follow the cycle into an
+;; infinate loop. It is especially tricky because, when we build
+;; up the bundle directory, it has lots of symlinks to store files
+;; that we DO want to follow, so we can't just use a naïve
+;; don't-follow-symlinks option.
+;;
+;; As a workaround, when we unpack the tarball, we delete the nixpkgs
+;; symlink. Once we've built up the bundle directory, we recursively
+;; copy everything into a new directory (so there are no remaining
+;; symlinks we'd need to follow into the store), then create a new
+;; "nixpkgs" -> "." symlink. Then, at least, the directory can be
+;; handled by any tool with a don't-follow-symlinks mode.
+
+(define-public nixpkgs-sans-symlink-cycle
+  (computed-file
+   (string-append %nixpkgs-release "-sans-symlink-cycle")
+   (with-imported-modules
+       `((guix build utils)
+         (srfi srfi-34)
+         (srfi srfi-35))
+     #~(begin
+         (use-modules (guix build utils)
+                      (srfi srfi-34)
+                      (srfi srfi-35))
+         #$(extract-.tar.xz-directory-gexp pinned-nixpkgs)
+         (unless (equal? "." (readlink "nixpkgs"))
+           (raise
+            (condition
+             (&error)
+             (&message
+              (message "nixpkgs did not contain a symlink to itself")))))
+         (delete-file "nixpkgs")))))
+
+(define-public apple-nix-config
+  (file-union
+   "apple-nix-config"
+   `(("nixpkgs" ,nixpkgs-sans-symlink-cycle)
+     ("src" , (computed-file
+               "libgit2-src"
+               (extract-.tar.xz-directory-gexp
+                libgit2-origin)))
+     ("args.nix" ,(plain-file
+                   "args.nix"
+                   (string-append
+                    "{ pkgs = import ./nixpkgs {};\n"
+                    "  rktLibgit2Version = \"" %libgit2-version "\";\n"
+                    "  rktLibgit2Src = ./src;\n"
+                    "  rktLibgit2CommonFlags = [\n"
+                    (string-concatenate
+                     (map (lambda (flag)
+                            (format #f "    ~s\n" flag))
+                          %common-configure-flags))
+                    "  ];\n"
+                    "}\n"))))))
+
 (define-public repo-root-dir
   (string-append
    (dirname (search-path %load-path "libgit2-for-racket.scm"))
@@ -31,44 +100,22 @@
   (local-file (string-append repo-root-dir "/apple-nix-skel")
               #:recursive? #t))
 
-(define (extracted-.tar.xz-directory name pth.tar.xz)
-  (computed-file
-   name
-   (with-imported-modules
-       `((guix build utils))
-     #~(begin
-         (use-modules (guix build utils))
-         (mkdir-p #$output)
-         (chdir #$output)
-         (setenv "PATH" #+(file-append xz "/bin"))
-         (invoke #+(file-append tar "/bin/tar")
-                 "-xvf" #+pth.tar.xz
-                 "--strip-components=1")))))
-
-(define-public apple-nix-config
-  (file-union
-   "apple-nix-config"
-   `(("nixpkgs" ,(extracted-.tar.xz-directory
-                  %nixpkgs-release
-                  pinned-nixpkgs))
-     ("src" ,(extracted-.tar.xz-directory
-              "libgit2-src"
-              libgit2-origin))
-     ("args.nix" ,(plain-file
-                   "args.nix"
-                   (string-append
-                    "{ pkgs = ./nixpkgs;\n"
-                    "  rktLibgit2Version = \"" %libgit2-version "\";\n"
-                    "  rktLibgit2Src = ./src;\n"
-                    "  rktLibgit2CommonFlags = [\n"
-                    (string-concatenate
-                     (map (lambda (flag)
-                            (format #f "    ~s\n" flag))
-                          %common-configure-flags))
-                    "  ];\n"
-                    "};\n"))))))
+(define-public apple-nix-bundle-pre-symlink-fix
+  (directory-union
+   "apple-nix-bundle-pre-symlink-fix"
+   (list apple-nix-skel
+         apple-nix-config)))
 
 (define-public apple-nix-bundle
-  (directory-union
+  (computed-file
    "apple-nix-bundle"
-   (list apple-nix-skel apple-nix-config)))
+   (with-imported-modules `((guix build utils))
+     #~(begin
+         (use-modules (guix build utils))
+         (copy-recursively
+          #$apple-nix-bundle-pre-symlink-fix
+          #$output
+          #:follow-symlinks? #t)
+         (chdir #$output)
+         (chdir "nixpkgs")
+         (symlink "." "nixpkgs")))))

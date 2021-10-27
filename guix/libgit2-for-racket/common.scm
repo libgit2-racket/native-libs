@@ -1,5 +1,6 @@
 #!r6rs
 (library (libgit2-for-racket common)
+  ;; this library needs to work in both Racket and Guile
   (export %racket-pkg-version
           %so-version
           %libgit2-version
@@ -14,6 +15,15 @@
           ;; configure flags
           %common-configure-flags)
   (import (rnrs base))
+
+  ;; Guile (but not Racket) requires this definition to be
+  ;; textually before its first use
+  (define (s+ . args)
+    ;; R6RS §5.10:
+  ;; "Literal constants, the strings returned by symbol->string, records
+  ;; with no mutable fields, and other values explicitly designated as
+  ;; immutable are immutable objects ..."
+    (symbol->string (string->symbol (apply string-append args))))
   
   (define %racket-pkg-version "0.0")
   (define %so-version "1.3")
@@ -50,12 +60,5 @@
 
   (define (apple-os? sym)
     (eq? sym 'macosx))
-
-  ;; R6RS §5.10:
-  ;; "Literal constants, the strings returned by symbol->string, records
-  ;; with no mutable fields, and other values explicitly designated as
-  ;; immutable are immutable objects ..."
-  (define (s+ . args)
-    (symbol->string (string->symbol (apply string-append args))))
   
   #||#)

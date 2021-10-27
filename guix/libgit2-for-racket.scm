@@ -6,6 +6,7 @@
   #:use-module (gnu packages)
   #:use-module (gnu packages version-control)
   #:use-module (ice-9 match)
+  #:use-module (srfi srfi-1)
   #:use-module (libgit2-for-racket common))
 
 ;; We are NOT configuring with "-DDEPRECATE_HARD=ON"
@@ -14,7 +15,7 @@
 
 (define-public (target->system-flags target)
   (cond
-   ((and target (string-contains target "mingw"))
+   ((target-windows? target)
     `(,(string-append "-DDLLTOOL=" target "-dlltool")
       ,(string-append "-DCMAKE_RC_COMPILER=" target "-windres")
       ;; TODO use's racket's openssl
@@ -24,6 +25,9 @@
       "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc -static-libstdc++"))
    (else
     `("-DUSE_HTTPS=OpenSSL-Dynamic"))))
+
+(define-public (target-windows? target)
+  (and target (string-contains target "mingw")))
 
 (define-public libgit2-origin
   (origin
@@ -92,3 +96,43 @@ copied into native @code{libgit2} Racket packages.")
        (lambda _
        (mkdir-p "my-clar-tmp")
        (setenv "CLAR_TMP" "my-clar-tmp")))))))))
+
+
+(define-public extracted-lib
+  (with-imported-modules `((guix build utils))
+    #~(begin
+        (use-modules (guix build utils))
+        (mkdir-p #$output)
+        (chdir #$output)
+        (copy-file
+         #$(let-system
+            (system target)
+            (file-append libgit2-for-racket
+                         (if (target-windows? target)
+                             "/bin/libgit2.dll"
+                             (string-append "/lib/"
+                                            (os->lib-filename 'linux)))))
+         #$(let-system
+            (system target)
+            (os->lib-filename 
+             (if (target-windows? target)
+                 'win32
+                 'linux))))
+        ;; TODO: patchelf
+        )))
+
+(define-public built-here-dirs
+  (file-union
+   "build"
+   (filter-map
+    (match-lambda
+      ((arch os target)
+       (if (apple-os? os)
+           #f
+           (let ((name (format #f "~a-~a" arch os)))
+             (list name
+                   (with-parameters
+                       ((%current-target-system
+                         (or target (%current-target-system))))
+                     (computed-file name extracted-lib)))))))
+    %all-platforms)))

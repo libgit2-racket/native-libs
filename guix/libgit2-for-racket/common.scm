@@ -20,14 +20,14 @@
   ;; textually before its first use
   (define (s+ . args)
     ;; R6RS §5.10:
-  ;; "Literal constants, the strings returned by symbol->string, records
-  ;; with no mutable fields, and other values explicitly designated as
-  ;; immutable are immutable objects ..."
+    ;; "Literal constants, the strings returned by symbol->string, records
+    ;; with no mutable fields, and other values explicitly designated as
+    ;; immutable are immutable objects ..."
     (symbol->string (string->symbol (apply string-append args))))
   
   (define %racket-pkg-version "0.0")
-  (define %so-version "1.3")
-  (define %libgit2-version (s+ %so-version ".0"))
+  (define %so-version "1.3.0") ;; reserve 1.3 for some day when we can -DDEPRICATE_HARD
+  (define %libgit2-version %so-version #;(s+ %so-version ".0"))
   (define %libgit2-checksum
     "0vgpb2175a5dhqiy1iwywwppahgqhi340i8bsvafjpvkw284vazd")
   (define %libgit2-origin-commit

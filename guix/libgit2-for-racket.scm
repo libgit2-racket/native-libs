@@ -5,7 +5,6 @@
   #:use-module (guix build-system copy)
   #:use-module (gnu packages)
   #:use-module (gnu packages version-control)
-  #:use-module (gnu packages elf)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module (libgit2-for-racket common))
@@ -99,7 +98,7 @@ copied into native @code{libgit2} Racket packages.")
        (setenv "CLAR_TMP" "my-clar-tmp")))))))))
 
 
-(define-public extract-lib/g
+(define-public extracted-lib
   (with-imported-modules `((guix build utils))
     #~(begin
         (use-modules (guix build utils))
@@ -108,25 +107,19 @@ copied into native @code{libgit2} Racket packages.")
         (copy-file
          #$(let-system
             (system target)
-            (file-append
-             libgit2-for-racket
-             (if (target-windows? target)
-                 "/bin/libgit2.dll"
-                 (string-append "/lib/"
-                                (os->lib-filename 'linux)))))
+            (file-append libgit2-for-racket
+                         (if (target-windows? target)
+                             "/bin/libgit2.dll"
+                             (string-append "/lib/"
+                                            (os->lib-filename 'linux)))))
          #$(let-system
             (system target)
             (os->lib-filename 
              (if (target-windows? target)
                  'win32
-                 'linux)))))))
-(define-public patch-rpath/g
-  (with-imported-modules `((guix build utils))
-    #~(begin
-        (use-modules (guix build utils))
-        (invoke #+(file-append patchelf "/bin/patchelf")
-                "--set-rpath" "$ORIGIN"
-                #$(os->lib-filename 'linux)))))
+                 'linux))))
+        ;; TODO: patchelf
+        )))
 
 (define-public built-here-dirs
   (file-union

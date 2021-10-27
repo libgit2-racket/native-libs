@@ -57,8 +57,5 @@
       "-DUSE_HTTP_PARSER=builtin"
       "-DUSE_BUNDLED_ZLIB=ON" ;; does Racket have one already?
       "-DUSE_NTLMCLINT=OFF"))
-
-  (define (apple-os? sym)
-    (eq? sym 'macosx))
   
   #||#)

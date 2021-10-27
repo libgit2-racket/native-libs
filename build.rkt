@@ -5,6 +5,7 @@
          (only-in racket/base
                   [string-append-immutable ++])
          "guix/libgit2-for-racket/common.scm"
+         syntax/parse/define
          racket/symbol)
 
 ;; install_name_tool -id libgit2.1.3.dylib libgit2.1.3.dylib
@@ -21,33 +22,43 @@ hart:apple-nix-bundle philip$ objdump -macho --dylibs-used libgit2.1.3.dylib lib
         /usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)
 |#
 
-
+#;
 (module+ main
   (for-each build-target-here
             platforms))
 
 (define-runtime-path guix-load-dir "guix/")
 (define here (build-path guix-load-dir 'up))
-(define workspace (build-path here "workspace"))
+(define default-workspace (build-path here "workspace"))
+(define current-workspace
+  (make-parameter default-workspace
+                  path->complete-path))
 
 (define guix (find-executable-path "guix"))
 
 
 (struct target (arch os triplet string)
-  #:transparent)
-(define (make-target arch os triplet)
-  (target arch os triplet
-          (++ (symbol->immutable-string arch)
-              "-"
-              (symbol->immutable-string os))))
-(define-syntax-rule (define-targets platforms
-                      [arch os triplet] ...)
+  #:prefab)
+(define-syntax-parse-rule (define-targets platforms
+                            ;; #f -> host platform
+                            [arch:id os:id (~or* triplet:str (~and triplet #f))] ...)
+  #:with (platform-string ...) (map (λ (arch os)
+                                      (format "~a-~a" (syntax-e arch) (syntax-e os)))
+                                    (attribute arch)
+                                    (attribute os))
   (define platforms
-    (list (make-target 'arch 'os 'triplet) ...)))
+    '(#s(target arch os triplet platform-string) ...)))
 (define-targets platforms
-  [x86_64 linux #f]
-  [x86_64 win32 "x86_64-w64-mingw32"]
-  [i386 win32 "i686-w64-mingw32"])
+  [x86_64  linux  #f]
+  [x86_64  win32  "x86_64-w64-mingw32"]
+  [i386    win32  "i686-w64-mingw32"]
+  [x86_64  macosx #f]
+  [aarch64 macosx "aarch64-darwin"])
+
+(define (apple-os? sym)
+  (eq? sym 'macosx))
+(define (windows-os? sym)
+  (eq? sym 'win32))
 
 (define os->lib-filename
   (match-lambda
@@ -57,6 +68,10 @@ hart:apple-nix-bundle philip$ objdump -macho --dylibs-used libgit2.1.3.dylib lib
      (++ "libgit2." %so-version ".dylib")]
     [_
      (++ "libgit2.so." %so-version)]))
+(define (os->built-lib-path os)
+  (if (windows-os? os)
+      (build-path "bin" "libgit2.dll")
+      (build-path "lib" (os->lib-filename os))))
 
 (define no-in (open-input-bytes #""))
 (define (invoke . args)
@@ -142,33 +157,48 @@ hart:apple-nix-bundle philip$ objdump -macho --dylibs-used libgit2.1.3.dylib lib
     (for ([pth (in-directory)])
       (copy-directory/files pth (build-path dest-dir pth)))))
 
+(define (call-with-tmp-root-path proc)
+  (define tmp-root (build-path (current-workspace) "tmp-store-root"))
+  (define (reclaim-tmp-root)
+    (match (file-or-directory-type tmp-root #f)
+      ['link
+       (delete-file tmp-root)]
+      [#f
+       (void)]
+      [other-type
+       (raise-arguments-error 'reclaim-tmp-root
+                              "root existed and was not a symlink"
+                              "path" tmp-root
+                              "type" other-type)]))
+  (dynamic-wind reclaim-tmp-root
+                (λ ()
+                  (call-with-continuation-barrier
+                   (λ () (proc tmp-root))))
+                reclaim-tmp-root))
+(define-syntax-parse-rule (let/tmp-root tmp-root:id body:expr ...+)
+  (call-with-tmp-root-path (λ (tmp-root) body ...)))
 (define (build-target-here a-target)
-  (match-define (target arch os triplet arch-os) a-target)
-  (define store-dir
-    (string->path
-     (second
-      (string-split
-       (with-output-to-string
-         (λ ()
-           (guix-build "-e"
-                       "(@ (libgit2-for-racket) libgit2-for-racket)"
-                       (and triplet (++ "--target=" triplet)))))))))
-  (define dest-dir (build-path workspace arch-os))
-  (delete-directory/files dest-dir #:must-exist? #f)
-  (make-directory* dest-dir)
-  (match os
-    ['linux
-     (define filename (os->lib-filename os))
-     (define dest-pth (build-path dest-dir filename))
-     (copy-file (build-path store-dir "lib" filename)
-                dest-pth)
+  (let/tmp-root
+   tmp-root
+   (match-define (target arch os triplet arch-os) a-target)
+   (define dest-dir (build-path (current-workspace) arch-os)) ;; <-------- consider
+   (delete-directory/files dest-dir #:must-exist? #f)
+   (make-directory* dest-dir)
+   (define filename (os->lib-filename os))
+   (define dest-pth (build-path dest-dir filename))
+
+   (guix-build "-e"
+               "(@ (libgit2-for-racket) libgit2-for-racket)"
+               "-r" tmp-root
+               (and triplet (++ "--target=" triplet)))
+
+   (copy-file (build-path tmp-root (os->built-lib-path os))
+              dest-pth)
+
+   (when (eq? 'linux os)
      (define mode (file-or-directory-permissions dest-pth 'bits))
      (file-or-directory-permissions dest-pth (bitwise-ior mode user-write-bit))
-     (invoke guix "environment" "--pure" "--container" "--ad-hoc" "patchelf"
-             "--" "patchelf" "--set-rpath" "$ORIGIN" dest-pth)
-     (file-or-directory-permissions dest-pth mode)]
-    ['win32
-     ;; there is also /lib/libgit2.dll.a
-     (copy-file (build-path store-dir "bin" "libgit2.dll")
-                (build-path dest-dir (os->lib-filename os)))])
-  (add-pkg-info a-target dest-dir))
+     (invoke guix "shell" "--pure" "--container" "patchelf"
+             "--"
+             "patchelf" "--set-rpath" "$ORIGIN" dest-pth)
+     (file-or-directory-permissions dest-pth mode))))

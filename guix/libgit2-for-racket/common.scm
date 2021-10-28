@@ -1,4 +1,5 @@
 #!r6rs
+;; SPDX-License-Identifier: (Apache-2.0 OR MIT)
 (library (libgit2-for-racket common)
   ;; this library needs to work in both Racket and Guile
   (export %racket-pkg-version
@@ -13,17 +14,17 @@
           %nixpkgs-checksum
           %nixpkgs-url
           ;; configure flags
-          %common-configure-flags)
+          %common-configure-flags
+          ;; platforms
+          %all-platforms
+          apple-os?
+          windows-os?
+          os->lib-filename
+          os->built-lib-path)
   (import (rnrs base))
 
-  ;; Guile (but not Racket) requires this definition to be
-  ;; textually before its first use
-  (define (s+ . args)
-    ;; R6RS §5.10:
-    ;; "Literal constants, the strings returned by symbol->string, records
-    ;; with no mutable fields, and other values explicitly designated as
-    ;; immutable are immutable objects ..."
-    (symbol->string (string->symbol (apply string-append args))))
+  ;; https://github.com/racket/r6rs/pull/6
+  (define s+ string-append)
   
   (define %racket-pkg-version "0.0")
   (define %so-version "1.3.0") ;; reserve 1.3 for some day when we can -DDEPRICATE_HARD
@@ -57,5 +58,40 @@
       "-DUSE_HTTP_PARSER=builtin"
       "-DUSE_BUNDLED_ZLIB=ON" ;; does Racket have one already?
       "-DUSE_NTLMCLINT=OFF"))
+
+
+  (define-syntax define-platforms
+    (syntax-rules ()
+      [(_ %all [arch os maybe-triplet] ...)
+       (define %all
+         `([arch os maybe-triplet ,(s+ (symbol->string 'arch) "-" (symbol->string 'os))]
+           ...))]))
+
+  (define-platforms %all-platforms
+    ;; #f -> host platform
+    [x86_64  linux  #f]
+    [x86_64  win32  "x86_64-w64-mingw32"]
+    [i386    win32  "i686-w64-mingw32"]
+    [x86_64  macosx #f]
+    [aarch64 macosx "aarch64-darwin"])
+
+  (define (apple-os? sym)
+    ;; e.g. iOS would also be one
+    (eq? sym 'macosx))
+  (define (windows-os? sym)
+    (eq? sym 'win32))
+  
+(define (os->lib-filename os)
+  (case os
+    [(win32)
+     (s+ "libgit2-" %so-version ".dll")]
+    [(macosx)
+     (s+ "libgit2." %so-version ".dylib")]
+    [else
+     (s+ "libgit2.so." %so-version)]))
+(define (os->built-lib-path os)
+  (if (windows-os? os)
+      (s+ "bin/" "libgit2.dll")
+      (s+ "lib/" (os->lib-filename os))))
   
   #||#)

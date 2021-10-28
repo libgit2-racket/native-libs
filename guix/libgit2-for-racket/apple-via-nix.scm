@@ -6,6 +6,7 @@
   #:use-module (gnu packages base)
   #:use-module (gnu packages compression)
   #:use-module (ice-9 match)
+  #:use-module (srfi srfi-1)
   #:use-module (libgit2-for-racket)
   #:use-module (libgit2-for-racket common))
 
@@ -70,10 +71,21 @@
   (file-union
    "apple-nix-config"
    `(("nixpkgs" ,nixpkgs-sans-symlink-cycle)
-     ("src" , (computed-file
-               "libgit2-src"
-               (extract-.tar.xz-directory-gexp
-                libgit2-origin)))
+     ("src" ,(computed-file
+              "libgit2-src"
+              (extract-.tar.xz-directory-gexp
+               libgit2-origin)))
+     ("platforms.rktd" ,(scheme-file
+                         "platforms.rktd"
+                         (filter-map
+                          (match-lambda
+                            ((arch os pkgsCrossAttr arch-os)
+                             (and (apple-os? os)
+                                  (list pkgsCrossAttr
+                                        (os->built-lib-path os)
+                                        arch-os
+                                        (os->lib-filename os)))))
+                          %all-platforms)))
      ("args.nix" ,(plain-file
                    "args.nix"
                    (string-append

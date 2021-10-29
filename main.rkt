@@ -17,6 +17,7 @@
                             (path-element->string name)
                             (path->string program)))
                       program)))
+
 (module+ main
   (command-line
    #:usage-help
@@ -67,7 +68,7 @@
                              "arch" (system-type 'arch)
                              "os*" (system-type 'os*))]
      [(list action)
-      (define (continue-when-all)
+      (define-syntax-rule (continue-when-all) ;; failure-cont is a syntax parameter
         (when (eq? action 'all)
           (failure-cont)))
       (match action

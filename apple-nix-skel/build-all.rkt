@@ -1,6 +1,7 @@
 #! /usr/bin/env nix-shell
-#! nix-shell -i racket -p nix racket-minimal
+#! nix-shell -i racket -p nix llvm racket-minimal
 #! nix-shell -I ./nixpkgs
+#! nix-shell --pure
 ;; https://nixos.org/manual/nix/stable/#use-as-a-interpreter
 ;; SPDX-License-Identifier: (Apache-2.0 OR MIT)
 #lang racket/base
@@ -15,6 +16,7 @@
 (module+ main
   (match (system-type 'os*)
     [(or 'macosx 'darwin)
+     (copy-git-describe.txt)
      (for-each build-one-arch
                (file->value platforms.rktd))]
     [os*
@@ -43,10 +45,13 @@
 
 (define nix-build
   (find-executable-path "nix-build"))
-(define install_name_tool
-  (find-executable-path "install_name_tool"))
 (define objdump
-  (find-executable-path "objdump"))
+  (find-executable-path "llvm-objdump"))
+(define install_name_tool
+  ;; llvm seems to pull this in via cctools-binutils-darwin
+  (find-executable-path "install_name_tool"))
+(define codesign
+  (string->path "/usr/bin/codesign"))
 
 (define build-one-arch
   (match-lambda
@@ -78,3 +83,14 @@
              "/usr/lib/libiconv.2.dylib"
              dest-pth)
      (file-or-directory-permissions dest-pth old-mode)]))
+
+(define (copy-git-describe.txt)
+  (define txt "git-describe.txt")
+  (define from-pth (here/ 'up txt))
+  (when (file-exists? from-pth)
+    (make-directory* built-dir)
+    (copy-file from-pth
+               (build-path built-dir txt))))
+
+
+    

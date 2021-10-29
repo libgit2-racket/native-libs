@@ -36,9 +36,9 @@
      (origin-patches (package-source libgit2)))
     (file-name (git-file-name "libgit2" %libgit2-version))))
 
-(define-public libgit2-shared-license-data
+(define-public libgit2-shared-license-files
   (package
-    (name "libgit2-shared-license-data")
+    (name "libgit2-shared-license-files")
     (version %libgit2-version)
     (source libgit2-origin)
     (build-system copy-build-system)
@@ -54,7 +54,7 @@
          (delete 'install-license-files)
          (delete 'compress-documentation))))
     (home-page (package-home-page libgit2))
-    (synopsis "Files copied from the libgit2 repository")
+    (synopsis "License files from the libgit2 repository")
     (description
      "This package contains license files and such that should be
 copied into native @code{libgit2} Racket packages.")

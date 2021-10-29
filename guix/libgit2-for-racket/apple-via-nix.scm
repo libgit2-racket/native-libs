@@ -67,9 +67,9 @@
               (message "nixpkgs did not contain a symlink to itself")))))
          (delete-file "nixpkgs")))))
 
-(define-public apple-nix-config
+(define-public apple-nix-computed
   (file-union
-   "apple-nix-config"
+   "apple-nix-computed"
    `(("nixpkgs" ,nixpkgs-sans-symlink-cycle)
      ("src" ,(computed-file
               "libgit2-src"
@@ -112,20 +112,20 @@
   (local-file (string-append repo-root-dir "/apple-nix-skel")
               #:recursive? #t))
 
-(define-public apple-nix-bundle-pre-symlink-fix
+(define-public apple-nix-src-pre-symlink-fix
   (directory-union
-   "apple-nix-bundle-pre-symlink-fix"
+   "apple-nix-src-pre-symlink-fix"
    (list apple-nix-skel
-         apple-nix-config)))
+         apple-nix-computed)))
 
-(define-public apple-nix-bundle
+(define-public apple-nix-src
   (computed-file
-   "apple-nix-bundle"
+   "apple-nix-src"
    (with-imported-modules `((guix build utils))
      #~(begin
          (use-modules (guix build utils))
          (copy-recursively
-          #$apple-nix-bundle-pre-symlink-fix
+          #$apple-nix-src-pre-symlink-fix
           #$output
           #:follow-symlinks? #t)
          (chdir #$output)

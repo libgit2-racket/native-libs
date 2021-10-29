@@ -1,7 +1,9 @@
-#! /usr/bin/env nix-shell
+#! /Users/philip/.nix-profile/bin/nix-shell
 #! nix-shell -i racket -p nix llvm racket-minimal
 #! nix-shell -I ./nixpkgs
 #! nix-shell --pure
+;; HACK!!! need to put nix-shell into PATH for interactive non-login shells
+;; see nix ping-store
 ;; https://nixos.org/manual/nix/stable/#use-as-a-interpreter
 ;; SPDX-License-Identifier: (Apache-2.0 OR MIT)
 #lang racket/base

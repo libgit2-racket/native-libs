@@ -77,7 +77,7 @@
           (path->directory-path (apple-nix-bundle/))
           (++ host ":" remote-dir))
   (invoke ssh host (++ remote-dir "/apple-nix-src/build-all.rkt"))
-  (invoke rsync "-avh" "--progress"
+  (invoke rsync "-avh" "--progress" "--copy-unsafe-links" ;; TODO: is this good enough to skip guix copying things?
           (++ host ":" remote-dir "/built-on-apple/")
           (path->directory-path (built-on-apple/)))
   ;; TODO

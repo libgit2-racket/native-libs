@@ -4,6 +4,8 @@
 (require "base.rkt"
          racket/cmdline
          racket/match
+         (for-syntax racket/base)
+         syntax/parse/define
          "init.rkt"
          "apple-run-remote.rkt"
          "pack.rkt")
@@ -17,6 +19,12 @@
                             (path-element->string name)
                             (path->string program)))
                       program)))
+
+(define-syntax-parse-rule (match/continue val:expr clause ...)
+  #:with orig-datum this-syntax
+  (let ([the-val val])
+    (match/derived the-val orig-datum clause [_ (void)])
+    ...))
 
 (module+ main
   (command-line
@@ -68,22 +76,18 @@
                              "arch" (system-type 'arch)
                              "os*" (system-type 'os*))]
      [(list action)
-      (define-syntax-rule (continue-when-all) ;; failure-cont is a syntax parameter
-        (when (eq? action 'all)
-          (failure-cont)))
-      (match action
-        [(or 'init 'all)
-         (init)
-         (continue-when-all)]
-        [(or 'apple-run-remote 'all)
-         (apple-run-remote)
-         (continue-when-all)]
-        #;
-        [(or 'pack 'all)
-         (pack)]
-        ;; end of 'all
-        ;; -------
-        #;['????
-           ])])
+      (match/continue
+       action
+       [(or 'init 'all)
+        (init)]
+       [(or 'apple-run-remote 'all)
+        (apple-run-remote)]
+       #;
+       [(or 'pack 'all)
+        (pack)]
+       ;; end of 'all
+       ;; -------
+       #;['????
+          ])])
    null))
 

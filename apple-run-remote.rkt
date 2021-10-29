@@ -73,11 +73,11 @@
     (current-apple-ssh-info))
   (define remote-dir
     (++ base "/" timestamp "/"))
-  (invoke rsync "-avh" "--progress"
+  (invoke rsync "-avh" "--progress" "--copy-unsafe-links" ;; TODO: is this good enough to skip guix copying things?
           (path->directory-path (apple-nix-bundle/))
           (++ host ":" remote-dir))
   (invoke ssh host (++ remote-dir "/apple-nix-src/build-all.rkt"))
-  (invoke rsync "-avh" "--progress" "--copy-unsafe-links" ;; TODO: is this good enough to skip guix copying things?
+  (invoke rsync "-avh" "--progress"
           (++ host ":" remote-dir "/built-on-apple/")
           (path->directory-path (built-on-apple/)))
   ;; TODO

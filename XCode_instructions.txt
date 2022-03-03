@@ -1,0 +1,28 @@
+(when trying to build for iOS):
+
+Unfortunately, we cannot download Xcode.app automatically.
+Please go to https://developer.apple.com/services-account/download?path=/Developer_Tools/Xcode_12.3/Xcode_12.3.xip
+to download it yourself, and add it to the Nix store by running the following commands.
+Note: download (~ 5GB), extraction and storing of Xcode will take a while
+
+open -W Xcode_12.3.xip
+rm -rf Xcode_12.3.xip
+
+nix-store --add-fixed --recursive sha256 Xcode.app
+rm -rf Xcode.app
+
+
+#|
+       o nix print-dev-env (./nix3-print-dev-env.md) - print shell  code  that
+         can  be  sourced  by  bash  to  reproduce  the build environment of a
+         derivation
+
+       o nix show-config (./nix3-show-config.md) - show the Nix configuration
+       o nix  show-derivation  (./nix3-show-derivation.md) - show the contents
+         of a store derivation
+       o nix doctor (./nix3-doctor.md) - check your system for potential prob-
+         lems and print a PASS or FAIL for each check
+       o nix  upgrade-nix  (./nix3-upgrade-nix.md) - upgrade Nix to the latest
+         stable version
+
+|#

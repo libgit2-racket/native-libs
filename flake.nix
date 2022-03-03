@@ -118,10 +118,11 @@
                 "bin/libgit2.dll"
               else
                 "lib/${libFileName}";
-              fixupLibCommand = if hostPlatform.isWindows then
-                "echo No fixup command for Windows."
+              racket = "${pkgs.racket-minimal}/bin/racket";
+              patchLibCommand = if hostPlatform.isWindows then
+                "echo No patch command needed for Windows DLLs."
               else if hostPlatform.isDarwin then
-                "echo TODO objdump + install_name_tool"
+                "${racket} ${self}/patch-darwin-dylib.rkt ${libFileName}"
               else ''
                 ${pkgs.patchelf}/bin/patchelf \
                    --set-rpath \$ORIGIN \
@@ -139,8 +140,13 @@
                 cp ${libgit2}/README.md README-libgit2.md
                 cp ${lg2}/${builtLibPath} ${libFileName}
                 chmod +w ${libFileName}
-                ${fixupLibCommand}
+                ${patchLibCommand}
                 chmod -w ${libFileName}
+                ${racket} ${self}/generate-info-rkt.rkt \
+                          --arch+os ${racketSystem} \
+                          --lib-filename ${libFileName} \
+                          --pkg-version ${rkt.pkgVersion} \
+                          > info.rkt
               '';
             in {
               name = racketSystem;

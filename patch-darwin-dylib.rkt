@@ -5,24 +5,26 @@
   (command-line
    #:usage-help
    "Adjusts Mach-O install names in library <filename>"
+   #:once-each
+   [("--llvm-objdump") path "use <path> for llvm-objdump"
+                       (objdump path)]
+   [("--install_name_tool") path "use <path> for install_name_tool"
+                            (install_name_tool path)]
    #:args ([filename #f])
    (if filename
        (patch-darwin-dylib filename)
        (eprintf "~a: no filename given: doing nothing\n" who))))
 
-(require racket/runtime-path
-         racket/match
-         racket/file
+(require racket/match
          racket/port
          racket/pretty
          racket/system
          racket/cmdline)
 
 (define objdump
-  (find-command "llvm-objdump"))
+  (make-parameter (find-command "llvm-objdump")))
 (define install_name_tool
-  ;; `llvm` seems to pull this in via `cctools-binutils-darwin`
-  (find-command "install_name_tool"))
+  (make-parameter (find-command "install_name_tool")))
 (define who 'patch-darwin-dylib)
 
 
@@ -32,14 +34,14 @@
   (patch-libiconv filename))
 
 (define (patch-id filename)
-  (invoke install_name_tool "-id" filename filename))
+  (invoke (install_name_tool) "-id" filename filename))
 
 (define (patch-libiconv filename)
   (define dylibs-used
     (with-output-to-string
       (λ ()
-        (invoke objdump "--macho" "--dylibs-used" filename))))
-  (invoke install_name_tool
+        (invoke (objdump) "--macho" "--dylibs-used" filename))))
+  (invoke (install_name_tool)
           "-change"
           (match dylibs-used
             [(pregexp #px"(?<=\\s)/nix/store/\\S+/libiconv[\\d\\.]*\\.dylib(?=\\s)"

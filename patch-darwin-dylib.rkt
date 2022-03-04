@@ -38,7 +38,7 @@
   (define dylibs-used
     (with-output-to-string
       (λ ()
-        (invoke objdump "-macho" "--dylibs-used" filename))))
+        (invoke objdump "--macho" "--dylibs-used" filename))))
   (invoke install_name_tool
           "-change"
           (match dylibs-used

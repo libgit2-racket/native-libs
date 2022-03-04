@@ -94,7 +94,7 @@ let
           chmod +w ${libFileName}
           ${patchLibCommand}
           chmod -w ${libFileName}
-          ${racket} ${scripts}/generate-info-rkt.rkt > info.rkt
+          ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
         '';
       };
     };

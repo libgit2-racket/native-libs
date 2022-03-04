@@ -128,7 +128,7 @@
                   llvmBin = "${pkgs.llvm}/bin";
                   intBin = "${pkgs.darwin.binutils-unwrapped}/bin";
                 in ''
-                  export PATH=${llvmBin}:${intBin}"$\{PATH:+:}$PATH"
+                  export PATH=${llvmBin}:${intBin}"''${PATH:+:}$PATH"
                   ${racket} ${self}/patch-darwin-dylib.rkt ${libFileName}
                 '')
               else ''

@@ -122,7 +122,15 @@
               patchLibCommand = if hostPlatform.isWindows then
                 "echo No patch command needed for Windows DLLs."
               else if hostPlatform.isDarwin then
-                "${racket} ${self}/patch-darwin-dylib.rkt ${libFileName}"
+                (let
+                  # llvm for llvm-objdump
+                  # darwin.binutils-unwrapped for install_name_tool
+                  llvmBin = "${pkgs.llvm}/bin";
+                  intBin = "${pkgs.darwin.binutils-unwrapped}/bin";
+                in ''
+                  export PATH=${llvmBin}:${intBin}"$\{PATH:+:}$PATH"
+                  ${racket} ${self}/patch-darwin-dylib.rkt ${libFileName}
+                '')
               else ''
                 ${pkgs.patchelf}/bin/patchelf \
                    --set-rpath \$ORIGIN \

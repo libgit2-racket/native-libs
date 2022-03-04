@@ -1,40 +1,23 @@
 {
   "nodes": {
-    "libgit2": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1645905004,
-        "narHash": "sha256-Re9GzVt582opl8opdmdGWISo/89VNg2Cu9Gp9qfgpXU=",
-        "owner": "libgit2",
-        "repo": "libgit2",
-        "rev": "182d0d1ee933de46bf0b5a6ec269bafa77aba9a2",
-        "type": "github"
-      },
-      "original": {
-        "owner": "libgit2",
-        "ref": "v1.4.2",
-        "repo": "libgit2",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1646355436,
-        "narHash": "sha256-IgetGjzur3KzAV+nigrPRw0ibma018ozSIBAJKFWypU=",
+        "lastModified": 1646258393,
+        "narHash": "sha256-mKDoCi5Baqainjf0Nx6oTPhaxKQdj4P17XTdhTtXGRA=",
         "owner": "NixOs",
         "repo": "nixpkgs",
-        "rev": "b685f44ef2adbcc4b4330e22e427c03bdb03ef72",
+        "rev": "ed02c2ba0384b2800db41333045a6fb781f12aac",
         "type": "github"
       },
       "original": {
         "owner": "NixOs",
+        "ref": "nixos-21.11",
         "repo": "nixpkgs",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "libgit2": "libgit2",
         "nixpkgs": "nixpkgs"
       }
     }

@@ -2,24 +2,30 @@
   description = "Flake to generate Racket libgit2 native library packages";
 
   inputs = {
-    nixpkgs.url = "github:NixOs/nixpkgs";
-
-    libgit2 = {
+    nixpkgs = {
       type = "github";
-      owner = "libgit2";
-      repo = "libgit2";
-      ref = "v1.4.2"; # seemingly no way to use rkt.libgit2Version here
-      flake = false;
+      owner = "NixOs";
+      repo = "nixpkgs";
+      # NOTE: the nixpkgs version used determines MACOSX_VERSION_MIN
+      ref = "nixos-21.11";
     };
   };
 
-  outputs = { self, nixpkgs, libgit2 }:
+  outputs = { self, nixpkgs }:
     let
 
       rkt = {
         pkgVersion = "0.0";
-        libgit2Version = "1.4.2";
         soVersion = "1.4";
+        libgit2 = rec {
+          version = "1.4.2";
+          src = {
+            sha256 = "0xd5w2kzdafipf10sdjmrzzsi12q8rkpcafajwlnmwvrbg6ldvs5";
+            rev = "v${version}";
+            owner = "libgit2";
+            repo = "libgit2";
+          };
+        };
       };
 
       # Nix uses Autotools build/host/target terminology
@@ -85,9 +91,12 @@
 
     in {
 
+      rkt = rkt;
+
       packages = genAttrs supportedSystemsForBuild (systemForBuild:
         let
           pkgs = import nixpkgs { system = systemForBuild; };
+          src = pkgs.fetchFromGitHub rkt.libgit2.src;
           supportedHosts = builtins.filter ({ crossAttr, ... }:
             pkgs.buildPlatform.isDarwin || ((builtins.isString crossAttr)
               && (!pkgs.pkgsCross.${crossAttr}.hostPlatform.isDarwin))) hosts;
@@ -98,9 +107,9 @@
               else
                 pkgs.pkgsCross.${crossAttr};
               hostPlatform = pkgsMaybeCross.hostPlatform;
-              lg2 = pkgsMaybeCross.libgit2.overrideAttrs (oldAttrs: rec {
-                version = rkt.libgit2Version;
-                src = libgit2;
+              lg2 = pkgsMaybeCross.libgit2.overrideAttrs (oldAttrs: {
+                version = rkt.libgit2.version;
+                src = src;
                 patches = [ ];
                 buildInputs = [ ];
                 cmakeFlags = commonFlags ++ (if hostPlatform.isWindows then
@@ -140,12 +149,12 @@
                 mkdir -p $out/${racketSystem}
                 cd $out/${racketSystem}
                 cp \
-                   ${libgit2}/COPYING \
-                   ${libgit2}/AUTHORS \
-                   ${libgit2}/git.git-authors \
-                   ${libgit2}/docs/changelog.md \
+                   ${src}/COPYING \
+                   ${src}/AUTHORS \
+                   ${src}/git.git-authors \
+                   ${src}/docs/changelog.md \
                    .
-                cp ${libgit2}/README.md README-libgit2.md
+                cp ${src}/README.md README-libgit2.md
                 cp ${lg2}/${builtLibPath} ${libFileName}
                 chmod +w ${libFileName}
                 ${patchLibCommand}

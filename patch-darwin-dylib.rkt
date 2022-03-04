@@ -11,7 +11,6 @@
        (eprintf "~a: no filename given: doing nothing\n" who))))
 
 (require racket/runtime-path
-         "invoke.rkt"
          racket/match
          racket/file
          racket/port

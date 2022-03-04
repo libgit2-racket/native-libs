@@ -55,11 +55,9 @@
                      [narHash . "sha256-mKDoCi5Baqainjf0Nx6oTPhaxKQdj4P17XTdhTtXGRA="]
                      [rev . "ed02c2ba0384b2800db41333045a6fb781f12aac"]
                      ;; .locked
-                     [type . "github"]
                      [owner . "NixOs"]
                      [repo . "nixpkgs"]
                      ;; .original
-                    
                      [ref . "nixos-21.11"])]
           [libgit2-info
            . #hasheq([version . "0.28.0"]

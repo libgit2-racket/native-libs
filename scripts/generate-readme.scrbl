@@ -12,19 +12,17 @@
 
 @(match-define
    (H-T arch+os
-        #;lib-filename
-        #;pkg-version
+        lib-filename
+        pkg-version
         breaking-change-label
-        #;platforms
-        #;
+        platforms
         [#:_ self-source-info
          (H-T #:prefix self.
               [#:_ lastModifiedDate
                (app beautify-lastModifiedDate
                     self.lastModifiedDate)]
               narHash
-              [#:? ref #f])]
-        #;
+              [#:? rev #f])]
         [#:_ nixpkgs-source+lock-info
          (H-T #:prefix nixpkgs.
               [#:_ lastModifiedDate
@@ -33,12 +31,10 @@
               narHash
               rev
               ;; .locked
-              [#:_ type "github"]
               owner
               repo
               ;; .original
               ref)]
-        #;
         [#:_ libgit2-info
          (H-T #:prefix libgit2.
               version
@@ -65,6 +61,12 @@ for @tt[arch+os].
 @section{Provenance}
 
 To do ...
+
+Last modified: @self.lastModifiedDate
+
+Nar Hash: @self.narHash
+
+Ref: @tt[(or self.rev @tt{DIRTY-@self.lastModifiedDate})]
 
 @section{License}
 

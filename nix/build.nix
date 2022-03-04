@@ -2,6 +2,7 @@
 , platforms ? import ./platforms.nix, ... }:
 with nixpkgs.lib;
 with builtins;
+with asserts;
 let
   pkgs = import nixpkgs { system = systemForBuild; };
 
@@ -13,15 +14,24 @@ let
 
   scripts = "${self}/scripts";
 
-  scriptArgs = {
+  scriptArgs = let
+    lock-info = (importJSON ../flake.lock).nodes.nixpkgs;
+    # otherwise, `sourceInfo`s are JSON-ized as store paths
+    # (libgit2 is ok without this)
+    safeAttrs = [ "lastModifiedDate" "narHash" "rev" "owner" "repo" "ref" ];
+    cleanseSourceInfoAttrs = filterAttrs (k: v: elem k safeAttrs);
+    assertLockGitHub = key:
+      assertMsg (lock-info.${key}.type == "github")
+      ''lock-info.${key} is not of type "github"'';
+  in assert assertLockGitHub "locked";
+  assert assertLockGitHub "original"; {
     pkg-version = rkt.pkgVersion;
     breaking-change-label = rkt.breakingChangeLabel;
     platforms = attrsets.catAttrs "rktPlatform" platforms;
-    self-source-info = self.sourceInfo;
     libgit2-info = rkt.libgit2.src // { version = rkt.libgit2.version; };
-    "nixpkgs-source+lock-info" =
-      let lock-info = (importJSON ../flake.lock).nodes.nixpkgs;
-      in lock-info.original // lock-info.locked // nixpkgs.sourceInfo;
+    self-source-info = cleanseSourceInfoAttrs self.sourceInfo;
+    "nixpkgs-source+lock-info" = cleanseSourceInfoAttrs
+      (lock-info.original // lock-info.locked // nixpkgs.sourceInfo);
   };
   mkRKT_JSON_ARGSenv = args: { RKT_JSON_ARGS = toJSON args; };
 

@@ -54,7 +54,7 @@ let
       darwin = ''
         ${racket} ${scripts}/patch-darwin-dylib.rkt \
           --llvm-objdump ${pkgs.llvm}/bin/llvm-objdump \
-          --install-name-tool \
+          --install_name_tool \
           ${pkgs.darwin.binutils-unwrapped}/bin/install_name_tool \
           ${libFileName.darwin}
       '';

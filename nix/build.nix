@@ -14,6 +14,11 @@ let
 
   scripts = "${self}/scripts";
 
+  cpGitignoreApacheMit = ''
+    cp ${self}/nix/gitignore-skel .gitignore
+    cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
+  '';
+
   scriptArgs = let
     lock-info = (importJSON ../flake.lock).nodes.nixpkgs;
     # otherwise, `sourceInfo`s are JSON-ized as store paths
@@ -105,7 +110,7 @@ let
                ${src}/docs/changelog.md \
                .
             cp ${src}/README.md README-libgit2.md
-            cp ${self}/nix/gitignore-skel .gitignore
+            ${cpGitignoreApacheMit}
             cp ${built}/${builtLibPath} ${libFileName}
             chmod +w ${libFileName}
             ${patchLibCommand}
@@ -128,7 +133,7 @@ let
     (mkRKT_JSON_ARGSenv scriptArgs) ''
       mkdir -p $out/native-libs
       cd $out/native-libs
-      cp ${self}/nix/gitignore-skel .gitignore
+      ${cpGitignoreApacheMit}
       ${racket} ${scripts}/mk-info-rkt.rkt --meta-pkg > info.rkt
     '';
 

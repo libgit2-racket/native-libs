@@ -17,6 +17,11 @@ let
     pkg-version = rkt.pkgVersion;
     breaking-change-label = rkt.breakingChangeLabel;
     platforms = attrsets.catAttrs "rktPlatform" platforms;
+    self-source-info = self.sourceInfo;
+    libgit2-info = rkt.libgit2.src // { version = rkt.libgit2.version; };
+    "nixpkgs-source+lock-info" =
+      let lock-info = (importJSON ../flake.lock).nodes.nixpkgs;
+      in lock-info.original // lock-info.locked // nixpkgs.sourceInfo;
   };
   mkRKT_JSON_ARGSenv = args: { RKT_JSON_ARGS = toJSON args; };
 
@@ -96,6 +101,8 @@ let
             ${patchLibCommand}
             chmod -w ${libFileName}
             ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
+            ${scribble} --markdown --dest-name README.md \
+              ${scripts}/generate-readme.scrbl
           '';
       };
     };

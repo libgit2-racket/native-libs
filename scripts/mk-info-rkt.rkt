@@ -6,30 +6,26 @@
    #:once-any
    [("--meta-pkg")
     "generate for the meta-package"
-    (match (getenv "RKT_JSON_ARGS")
-      [(app string->jsexpr
-            (hash-table ['pkg-version pkg-version]
-                        ['breaking-change-label breaking-change-label]
-                        ['platforms platforms]
-                        [_ _] ...))
-       (write-info-rkt
-        (meta-pkg-body #:pkg-version pkg-version
-                       #:breaking-change-label breaking-change-label
-                       #:platforms platforms))])]
+    (match-define (H-T pkg-version
+                       breaking-change-label
+                       platforms)
+      (json-args))
+    (write-info-rkt
+     (meta-pkg-body #:pkg-version pkg-version
+                    #:breaking-change-label breaking-change-label
+                    #:platforms platforms))]
    [("--platform-pkg")
     "generate for platform-specific package"
-    (match (getenv "RKT_JSON_ARGS")
-      [(app string->jsexpr
-            (hash-table ['arch+os arch+os]
-                        ['pkg-version pkg-version]
-                        ['breaking-change-label breaking-change-label]
-                        ['lib-filename lib-filename]
-                        [_ _] ...))
-       (write-info-rkt
-        (platform-pkg-body #:arch+os arch+os
-                           #:pkg-version pkg-version
-                           #:breaking-change-label breaking-change-label
-                           #:lib-filename lib-filename))])]))
+    (match-define (H-T arch+os
+                       pkg-version
+                       breaking-change-label
+                       lib-filename)
+      (json-args))
+    (write-info-rkt
+     (platform-pkg-body #:arch+os arch+os
+                        #:pkg-version pkg-version
+                        #:breaking-change-label breaking-change-label
+                        #:lib-filename lib-filename))]))
 
 (module+ test
   (write-info-rkt
@@ -49,13 +45,11 @@
          racket/pretty
          racket/cmdline
          racket/string
-         json
+         "utils.rkt"
          syntax/to-string
          (for-syntax racket/base
                      racket/syntax-srcloc)
-         syntax/parse/define
-         (rename-in racket/base
-                    [string-append-immutable ++]))
+         syntax/parse/define)
 
 (define-syntax-parse-rule (Q v:expr)
   #:with ret (let* ([loc (syntax-srcloc this-syntax)]
@@ -148,13 +142,7 @@
      (define deps
        `#,(Q make-deps))})
 
-(define (make-pkg-name breaking-change-label suffix)
-  (++ "libgit2-"
-      breaking-change-label
-      (if (non-empty-string? breaking-change-label)
-          "-"
-          "")
-      suffix))
+
 
 (define arch+os->platform-spec
   (match-lambda

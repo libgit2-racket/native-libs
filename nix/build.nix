@@ -16,7 +16,9 @@ let
   scriptArgs = {
     pkg-version = rkt.pkgVersion;
     breaking-change-label = rkt.breakingChangeLabel;
+    platforms = attrsets.catAttrs "rktPlatform" platforms;
   };
+  mkRKT_JSON_ARGSenv = args: { RKT_JSON_ARGS = toJSON args; };
 
   osSpecific = rec {
     libFileName = {
@@ -74,28 +76,27 @@ let
           cmakeFlags = (import ./flags.nix).forHostPlatform hostPlatform;
         });
 
-        packed = pkgs.runCommandLocal "${rktPlatform}-${rkt.pkgVersion}" {
-          RKT_JSON_ARGS = toJSON (scriptArgs // {
+        packed = pkgs.runCommandLocal "${rktPlatform}-${rkt.pkgVersion}"
+          (mkRKT_JSON_ARGSenv (scriptArgs // {
             "arch+os" = rktPlatform;
             lib-filename = libFileName;
-          });
-        } ''
-          mkdir -p $out/${rktPlatform}
-          cd $out/${rktPlatform}
-          cp \
-             ${src}/COPYING \
-             ${src}/AUTHORS \
-             ${src}/git.git-authors \
-             ${src}/docs/changelog.md \
-             .
-          cp ${src}/README.md README-libgit2.md
-          cp ${self}/nix/gitignore-skel .gitignore
-          cp ${built}/${builtLibPath} ${libFileName}
-          chmod +w ${libFileName}
-          ${patchLibCommand}
-          chmod -w ${libFileName}
-          ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
-        '';
+          })) ''
+            mkdir -p $out/${rktPlatform}
+            cd $out/${rktPlatform}
+            cp \
+               ${src}/COPYING \
+               ${src}/AUTHORS \
+               ${src}/git.git-authors \
+               ${src}/docs/changelog.md \
+               .
+            cp ${src}/README.md README-libgit2.md
+            cp ${self}/nix/gitignore-skel .gitignore
+            cp ${built}/${builtLibPath} ${libFileName}
+            chmod +w ${libFileName}
+            ${patchLibCommand}
+            chmod -w ${libFileName}
+            ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
+          '';
       };
     };
 
@@ -106,9 +107,13 @@ let
   packagesByHost =
     listToAttrs (map mkForHost (filter canBuildForHost platforms));
 
-  meta = pkgs.runCommandLocal "native-libs-${rkt.pkgVersion}" { } ''
-    mkdir -p $out/native-libs
-  '';
+  meta = pkgs.runCommandLocal "native-libs-${rkt.pkgVersion}"
+    (mkRKT_JSON_ARGSenv scriptArgs) ''
+      mkdir -p $out/native-libs
+      cd $out/native-libs
+      cp ${self}/nix/gitignore-skel .gitignore
+      ${racket} ${scripts}/mk-info-rkt.rkt --meta-pkg > info.rkt
+    '';
 
   mkBundle = name: lst:
     pkgs.symlinkJoin {

@@ -1,5 +1,6 @@
 {
   pkgVersion = "0.0"; # info.rkt `(define version ...)`
+  breakingChangeLabel = ""; # to change package names for breaking changes
   soVersion = "1.4"; # e.g. for `ffi-lib`
   libgit2 = rec {
     version = "1.4.2"; # IMPORTANT! MUST also update sha256 below.

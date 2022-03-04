@@ -23,16 +23,18 @@
 
       rkt = import ./version.nix;
 
-      platforms = import ./platforms.nix;
+      platforms = import ./nix/platforms.nix;
 
       builtByPlatform = genForAllSystems (systemForBuild:
-        import ./build.nix {
+        import ./nix/build.nix {
           inherit self nixpkgs systemForBuild rkt platforms;
         });
 
     in {
 
       rkt = rkt // { inherit platforms; };
+
+      src = head (catAttrs "src" (attrValues builtByPlatform));
 
       packages = genForAllSystems
         (systemForBuild: builtByPlatform.${systemForBuild}.packages);

@@ -1,0 +1,7 @@
+# -*- mode: gitignore; -*-
+*~
+\#*
+.\#*
+.DS_Store
+compiled/
+/doc/

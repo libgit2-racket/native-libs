@@ -1,4 +1,4 @@
-{ self, nixpkgs, systemForBuild, rkt ? import ./version.nix
+{ self, nixpkgs, systemForBuild, rkt ? import ../version.nix
 , platforms ? import ./platforms.nix, ... }:
 with nixpkgs.lib;
 with builtins;
@@ -10,6 +10,13 @@ let
   racket = "${pkgs.racket}/bin/racket";
 
   scribble = "${pkgs.racket}/bin/scribble";
+
+  scripts = "${self}/scripts";
+
+  scriptArgs = {
+    pkg-version = rkt.pkgVersion;
+    breaking-change-label = rkt.breakingChangeLabel;
+  };
 
   osSpecific = rec {
     libFileName = {
@@ -28,11 +35,11 @@ let
            ${libFileName.unix}
       '';
       darwin = ''
-        ${racket} ${self}/patch-darwin-dylib.rkt \
+        ${racket} ${scripts}/patch-darwin-dylib.rkt \
           --llvm-objdump ${pkgs.llvm}/bin/llvm-objdump \
           --install-name-tool \
           ${pkgs.darwin.binutils-unwrapped}/bin/install_name_tool \
-           ${libFileName.darwin}
+          ${libFileName.darwin}
       '';
     };
   };
@@ -67,7 +74,12 @@ let
           cmakeFlags = (import ./flags.nix).forHostPlatform hostPlatform;
         });
 
-        packed = pkgs.runCommandLocal "${rktPlatform}-${rkt.pkgVersion}" { } ''
+        packed = pkgs.runCommandLocal "${rktPlatform}-${rkt.pkgVersion}" {
+          RKT_JSON_ARGS = toJSON (scriptArgs // {
+            "arch+os" = rktPlatform;
+            lib-filename = libFileName;
+          });
+        } ''
           mkdir -p $out/${rktPlatform}
           cd $out/${rktPlatform}
           cp \
@@ -77,15 +89,12 @@ let
              ${src}/docs/changelog.md \
              .
           cp ${src}/README.md README-libgit2.md
+          cp ${self}/nix/gitignore-skel .gitignore
           cp ${built}/${builtLibPath} ${libFileName}
           chmod +w ${libFileName}
           ${patchLibCommand}
           chmod -w ${libFileName}
-          ${racket} ${self}/generate-info-rkt.rkt \
-                    --arch+os ${rktPlatform} \
-                    --lib-filename ${libFileName} \
-                    --pkg-version ${rkt.pkgVersion} \
-                    > info.rkt
+          ${racket} ${scripts}/generate-info-rkt.rkt > info.rkt
         '';
       };
     };
@@ -101,10 +110,10 @@ let
     mkdir -p $out/native-libs
   '';
 
-  mkBundle = name: byHost:
+  mkBundle = name: lst:
     pkgs.symlinkJoin {
       name = "racket-libgit2-native-pkgs-${rkt.pkgVersion}-${name}";
-      paths = [ meta ] ++ attrsets.catAttrs "packed" byHost;
+      paths = [ meta ] ++ (attrsets.catAttrs "packed" lst);
     };
 
 in {

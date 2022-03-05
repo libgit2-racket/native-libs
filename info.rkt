@@ -2,9 +2,9 @@
 ;; SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 (define pkg-name "libgit2-x86_64-win32")
-(define collection 'multi)
+(define collection "libgit2")
 
-(define version "0.0")
+(define version "0.0.0.1")
 (define pkg-desc "native libraries for \"libgit2\" on \"x86_64-win32\"")
 (define pkg-authors '(philip))
 

@@ -7,13 +7,9 @@ let
   pkgs = import nixpkgs { system = systemForBuild; };
 
   src = pkgs.fetchFromGitHub rkt.libgit2.src;
-
   racket = "${pkgs.racket}/bin/racket";
-
   scribble = "${pkgs.racket}/bin/scribble";
-
   scripts = "${self}/scripts";
-
   cpGitignoreApacheMit = ''
     cp ${self}/nix/gitignore-skel .gitignore
     cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
@@ -122,9 +118,11 @@ let
       };
     };
 
+  crossAttrIsDarwin = crossAttr:
+    (!isString crossAttr) || pkgs.pkgsCross.${crossAttr}.hostPlatform.isDarwin;
+
   canBuildForHost = { crossAttr, ... }:
-    pkgs.buildPlatform.isDarwin || ((isString crossAttr)
-      && (!pkgs.pkgsCross.${crossAttr}.hostPlatform.isDarwin));
+    pkgs.buildPlatform.isDarwin || (!crossAttrIsDarwin crossAttr);
 
   packagesByHost =
     listToAttrs (map mkForHost (filter canBuildForHost platforms));
@@ -137,23 +135,40 @@ let
       ${racket} ${scripts}/mk-info-rkt.rkt --meta-pkg > info.rkt
     '';
 
-  mkBundle = name: lst:
-    pkgs.symlinkJoin {
+  mkBundle =
+    { name ? "bundle", hosts ? attrNames packagesByHost, withMeta ? false }:
+    let
+      maybeMeta = if withMeta then [ meta ] else [ ];
+      packedPackagesForHosts = map (h: packagesByHost.${h}.packed) hosts;
+    in pkgs.symlinkJoin {
       name = "racket-libgit2-native-pkgs-${rkt.pkgVersion}-${name}";
-      paths = [ meta ] ++ (attrsets.catAttrs "packed" lst);
+      paths = maybeMeta ++ packedPackagesForHosts;
     };
 
 in {
 
-  src = src;
+  inherit mkBundle;
 
-  packages = lists.foldr trivial.mergeAttrs {
+  packages = lists.foldr trivial.mergeAttrs ({
 
     inherit meta;
 
-    all = mkBundle "all" (attrValues packagesByHost);
+    all = mkBundle {
+      name = "all";
+      withMeta = true;
+      hosts = attrNames packagesByHost;
+    };
 
-  } (mapAttrsToList (host:
+  } // optionalAttrs pkgs.buildPlatform.isDarwin (let
+    toHostIfDarwin = { rktPlatform, crossAttr, nixSystem }:
+      lists.optional (crossAttrIsDarwin crossAttr) rktPlatform;
+  in {
+    apple = mkBundle {
+      name = "apple-bundle";
+      hosts = concatMap toHostIfDarwin platforms;
+      withMeta = false;
+    };
+  })) (mapAttrsToList (host:
     { built, packed }: {
       "built-${host}" = built;
       "packed-${host}" = packed;

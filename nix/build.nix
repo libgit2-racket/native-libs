@@ -89,7 +89,7 @@ let
           src = src;
           patches = [ ];
           buildInputs = [ ];
-          cmakeFlags = (import ./flags.nix).forHostPlatform hostPlatform;
+          cmakeFlags = (import ./flags.nix rkt).forHostPlatform hostPlatform;
         });
 
         packed = pkgs.runCommandLocal "${rktPlatform}-${rkt.pkgVersion}"

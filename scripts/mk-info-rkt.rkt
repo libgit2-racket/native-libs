@@ -70,7 +70,7 @@
                            #:breaking-change-label breaking-change-label
                            #:lib-filename lib-filename)
   #`{(define pkg-name #,(Q (make-pkg-name breaking-change-label arch+os)))
-     (define collection 'multi)
+     (define collection "libgit2") ;; copy-foreign-libs requires a collection
      ;;
      (define version #,(Q pkg-version))
      (define pkg-desc #,(Q (++ "native libraries for \"libgit2\" on \"" arch+os "\"")))
@@ -141,8 +141,6 @@
      ;;
      (define deps
        `#,(Q make-deps))})
-
-
 
 (define arch+os->platform-spec
   (match-lambda

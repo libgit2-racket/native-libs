@@ -1,9 +1,8 @@
-rec {
+{ deprecateHard ? false, ... }: rec {
   forHostPlatform = { isWindows, config, ... }:
     common ++ (if isWindows then mkWindows config else unix);
 
-  common = [
-    #"-DDEPRECATE_HARD=ON" # probably should change when updating version!
+  common = (if deprecateHard then [ "-DDEPRECATE_HARD=ON" ] else [ ]) ++ [
     "-DREGEX_BACKEND=builtin" # maybe via Racket, one day?
     # re libssh2, see:
     #   - https://github.com/libgit2/libgit2/issues/5640#issuecomment-699704636

@@ -1,0 +1,28 @@
+[submodule "native-libs"]
+	path = pkgs/native-libs
+	url = https://github.com/LiberalArtist/native-libgit2-pkgs.git
+	branch = native-libs
+[submodule "x86_64-linux"]
+	path = pkgs/x86_64-linux
+	url = https://github.com/LiberalArtist/native-libgit2-pkgs.git
+	branch = x86_64-linux
+[submodule "aarch64-macosx"]
+	path = pkgs/aarch64-macosx
+	url = https://github.com/LiberalArtist/native-libgit2-pkgs.git
+	branch = aarch64-macosx
+[submodule "x86_64-macosx"]
+	path = pkgs/x86_64-macosx
+	url = https://github.com/LiberalArtist/native-libgit2-pkgs.git
+	branch = x86_64-macosx
+[submodule "i386-win32"]
+	path = pkgs/i386-win32
+	url = https://github.com/LiberalArtist/native-libgit2-pkgs.git
+	branch = i386-win32
+[submodule "x86_64-win32"]
+	path = pkgs/x86_64-win32
+	url = https://github.com/LiberalArtist/native-libgit2-pkgs.git
+	branch = x86_64-win32
+[submodule "build-scripts"]
+	path = build-scripts
+	url = https://github.com/LiberalArtist/native-libgit2-pkgs.git
+	branch = build-scripts

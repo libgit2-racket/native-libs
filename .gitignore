@@ -1,0 +1,10 @@
+# produced by `nix build`
+result
+####################
+# Generic:
+*~
+\#*
+.\#*
+.DS_Store
+compiled/
+/doc/

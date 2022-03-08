@@ -1,1 +1,2 @@
-#lang scribble/base\n@; SPDX-License-Identifier: (Apache-2.0 OR MIT)
+#lang scribble/base
+@; SPDX-License-Identifier: (Apache-2.0 OR MIT)

@@ -1,6 +1,8 @@
 #lang racket/base
+;; SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 (provide make-pkg-name
+         make-branch-name
          json-args
          default-json-args
          beautify-lastModifiedDate
@@ -46,6 +48,7 @@
 (define default-json-args
   #hasheq([pkg-version . "0.0.0.999"]
           [breaking-change-label . "unstable"]
+          [system-for-build . "x86_64-linux"]
           [platforms . ("i386-win32" "x86_64-linux")]
           [self-source-info
            . #hasheq([lastModifiedDate . "19181111110000"]

@@ -15,6 +15,7 @@
         lib-filename
         pkg-version
         breaking-change-label
+        system-for-build
         platforms
         [#:_ self-source-info
          (H-T #:prefix self.
@@ -49,6 +50,9 @@
                                      (loop aa bb)
                                      aa)))))
 
+@(define canonical-repo
+   "https://github.com/LiberalArtist/native-libgit2-pkgs")
+
 @(define pkg-name
    (make-pkg-name breaking-change-label arch+os))
 @(define (rel-link file)
@@ -58,17 +62,39 @@ This is the Racket package @tt[pkg-name], which contains the
 @hyperlink["https://libgit2.org"]{libgit2} shared library built
 for @tt[arch+os].
 
-@section{Provenance}
 
-To do ...
+@section[#:style '(hidden-number)]{Provenance}
 
-Last modified: @self.lastModifiedDate
+The contents of this package were generated using a
+@hyperlink[
+ "https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html"
+ ]{Nix flake} with NAR hash @tt{@|self.narHash|}, last modified on
+@|self.lastModifiedDate|. The flake is from Git commit
+@(or self.rev @tt{DIRTY-@|self.lastModifiedDate|}): if you
+are reading this file in a Git repository with the same
+structure as @url[canonical-repo], that commit should be
+part of the @tt{build-scripts} branch.
 
-Nar Hash: @self.narHash
+The flake was built on @tt[system-for-build] for @tt[arch+os].
 
-Ref: @tt[(or self.rev @tt{DIRTY-@self.lastModifiedDate})]
+The included libgit2 shared library is version
+@|libgit2.version|, built from the source at
+@url[(++ "https://github.com/"
+         libgit2.owner "/" libgit2.repo
+         "/tree/" libgit2.rev)].
+The Nix sha256 hash of the source is @tt[libgit2.sha256].
 
-@section{License}
+@(define nixpkgs-base-url
+   (++ "https://github.com/" nixpkgs.owner "/" nixpkgs.repo))
+The build environment used the
+@hyperlink[(++ nixpkgs-base-url "/tree/" nixpkgs.ref)]{@tt{@|nixpkgs.ref|}}
+branch of @url[nixpkgs-base-url], which resolved to commit
+@hyperlink[(++ nixpkgs-base-url "/commit/" nixpkgs.rev)]{@tt{@|nixpkgs.rev|}}
+(last modified @|nixpkgs.lastModifiedDate|) with NAR hash
+@tt{@|nixpkgs.narHash|}.
+
+
+@section[#:style '(hidden-number)]{License}
 
 The libgit2 shared library is under the license
 @tt{(@hyperlink["https://spdx.org/licenses/GPL-2.0-only.html"]{@tt{GPL-2.0-only}} WITH
@@ -83,10 +109,10 @@ file explains how to get the corresponding source for the
 compiled version of libgit2 distributed in this package.
 
 (Note that @rel-link{AUTHORS} and similar files in this
-repository are from upstream libgit2 drawn from upstream
-libgit2, but the libgit2 maintainers are not
-responsible for this repository in any way. (I am, however,
-grateful for advice some of them have given.))
+repository are drawn from upstream libgit2, but the libgit2
+maintainers are not responsible for this repository in any
+way. (I am, however, grateful for advice some of them have
+given.))
 
 The build scripts and other miscellaneous files added as
 part of the Racket packaging are distributed under the

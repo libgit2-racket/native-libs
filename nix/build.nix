@@ -28,6 +28,7 @@ let
   assert assertLockGitHub "original"; {
     pkg-version = rkt.pkgVersion;
     breaking-change-label = rkt.breakingChangeLabel;
+    system-for-build = systemForBuild;
     platforms = attrsets.catAttrs "rktPlatform" platforms;
     libgit2-info = rkt.libgit2.src // { version = rkt.libgit2.version; };
     self-source-info = cleanseSourceInfoAttrs self.sourceInfo;
@@ -112,8 +113,8 @@ let
             ${patchLibCommand}
             chmod -w ${libFileName}
             ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
-            ${scribble} --markdown --dest-name README.md \
-              ${scripts}/generate-readme.scrbl
+            ${scribble} --markdown --link-section --dest-name README.md \
+              ${scripts}/platform-readme.scrbl
           '';
       };
     };

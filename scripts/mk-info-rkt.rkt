@@ -158,14 +158,3 @@
           '(Apache-2.0 OR MIT))
   (write-string (syntax->string body))
   (newline))
-
-(define (arch+os<? a b)
-  (define split
-    (match-lambda
-      [(pregexp #px"^([^-]+)-([^-]+)$" (list _ arch os))
-       (values arch os)]))
-  (let-values ([{a-arch a-os} (split a)]
-               [{b-arch b-os} (split b)])
-    (or (string<? a-os b-os)
-        (and (string=? a-os b-os)
-             (string<? a-arch b-arch)))))

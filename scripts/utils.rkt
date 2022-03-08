@@ -5,6 +5,7 @@
          make-branch-name
          json-args
          default-json-args
+         arch+os<?
          beautify-lastModifiedDate
          H-T
          ++)
@@ -70,6 +71,17 @@
                      [repo . "libgit2"])]
           [arch+os . "x86_64-linux"]
           [lib-filename . "demo.so.x.y.z"]))
+
+(define (arch+os<? a b)
+  (define split
+    (match-lambda
+      [(pregexp #px"^([^-]+)-([^-]+)$" (list _ arch os))
+       (values arch os)]))
+  (let-values ([{a-arch a-os} (split a)]
+               [{b-arch b-os} (split b)])
+    (or (string<? a-os b-os)
+        (and (string=? a-os b-os)
+             (string<? a-arch b-arch)))))
 
 (define beautify-lastModifiedDate
   (match-lambda

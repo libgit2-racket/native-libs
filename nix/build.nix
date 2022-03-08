@@ -15,7 +15,7 @@ let
     cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
   '';
 
-  scriptArgs = let
+  mkScriptArgsEnv = let
     lock-info = (importJSON ../flake.lock).nodes.nixpkgs;
     # otherwise, `sourceInfo`s are JSON-ized as store paths
     # (libgit2 is ok without this)
@@ -24,18 +24,21 @@ let
     assertLockGitHub = key:
       assertMsg (lock-info.${key}.type == "github")
       ''lock-info.${key} is not of type "github"'';
-  in assert assertLockGitHub "locked";
-  assert assertLockGitHub "original"; {
-    pkg-version = rkt.pkgVersion;
-    breaking-change-label = rkt.breakingChangeLabel;
-    system-for-build = systemForBuild;
-    platforms = attrsets.catAttrs "rktPlatform" platforms;
-    libgit2-info = rkt.libgit2.src // { version = rkt.libgit2.version; };
-    self-source-info = cleanseSourceInfoAttrs self.sourceInfo;
-    "nixpkgs-source+lock-info" = cleanseSourceInfoAttrs
-      (lock-info.original // lock-info.locked // nixpkgs.sourceInfo);
+    baseArgs = assert assertLockGitHub "locked";
+      assert assertLockGitHub "original"; {
+        pkg-version = rkt.pkgVersion;
+        breaking-change-label = rkt.breakingChangeLabel;
+        system-for-build = systemForBuild;
+        platforms = attrsets.catAttrs "rktPlatform" platforms;
+        libgit2-info = rkt.libgit2.src // { version = rkt.libgit2.version; };
+        self-source-info = cleanseSourceInfoAttrs self.sourceInfo;
+        "nixpkgs-source+lock-info" = cleanseSourceInfoAttrs
+          (lock-info.original // lock-info.locked // nixpkgs.sourceInfo);
+      };
+  in extraArgs: {
+    RKT_JSON_ARGS = toJSON (extraArgs // baseArgs);
+    RKT_ENFORCE_ARGS = "1";
   };
-  mkRKT_JSON_ARGSenv = args: { RKT_JSON_ARGS = toJSON args; };
 
   osSpecific = rec {
     libFileName = {
@@ -94,10 +97,10 @@ let
         });
 
         packed = pkgs.runCommandLocal "${rktPlatform}-${rkt.pkgVersion}"
-          (mkRKT_JSON_ARGSenv (scriptArgs // {
+          (mkScriptArgsEnv {
             "arch+os" = rktPlatform;
             lib-filename = libFileName;
-          })) ''
+          }) ''
             mkdir -p $out/${rktPlatform}
             cd $out/${rktPlatform}
             cp \
@@ -129,7 +132,7 @@ let
     listToAttrs (map mkForHost (filter canBuildForHost platforms));
 
   meta = pkgs.runCommandLocal "native-libs-${rkt.pkgVersion}"
-    (mkRKT_JSON_ARGSenv scriptArgs) ''
+    (mkScriptArgsEnv { }) ''
       mkdir -p $out/native-libs
       cd $out/native-libs
       ${cpGitignoreApacheMit}

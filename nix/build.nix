@@ -14,6 +14,10 @@ let
     cp ${self}/nix/gitignore-skel .gitignore
     cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
   '';
+  mkReadme = scrbl: ''
+    ${scribble} --markdown --link-section --dest-name README.md \
+       ${scripts}/${scrbl}
+  '';
 
   mkScriptArgsEnv = let
     lock-info = (importJSON ../flake.lock).nodes.nixpkgs;
@@ -116,8 +120,7 @@ let
             ${patchLibCommand}
             chmod -w ${libFileName}
             ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
-            ${scribble} --markdown --link-section --dest-name README.md \
-              ${scripts}/platform-readme.scrbl
+            ${mkReadme "platform-readme.scrbl"}
           '';
       };
     };
@@ -137,6 +140,7 @@ let
       cd $out/native-libs
       ${cpGitignoreApacheMit}
       ${racket} ${scripts}/mk-info-rkt.rkt --meta-pkg > info.rkt
+      ${mkReadme "meta-readme.scrbl"}
     '';
 
   mkBundle =

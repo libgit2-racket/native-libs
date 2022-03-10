@@ -1,8 +1,9 @@
 { self, nixpkgs }:
 let
 
-  rkt = import ./version.rkt;
-  flags = (import /flags.nix rkt);
+  rkt = import ../version.nix;
+  flags = (import ./flags.nix rkt);
+  scripts = "${self}/scripts";
 
   mkBuilt = { src, pkgsMaybeCross }:
     pkgsMaybeCross.libgit2.overrideAttrs (oldAttrs: {
@@ -42,13 +43,13 @@ let
       };
     in pkgs.runCommand name env cmd;
 
-  osSpecificVars = rec {
+  osSpecificVars = pkgs: rec {
     libFileName = {
       windows = "libgit2-${rkt.soVersion}.dll";
       darwin = "libgit2.${rkt.soVersion}.dylib";
       unix = "libgit2.so.${rkt.soVersion}";
     };
-    builtLibPath = ((mapAttrs (x: so: "lib/${so}") libFileName) // {
+    builtLibPath = ((builtins.mapAttrs (x: so: "lib/${so}") libFileName) // {
       windows = "bin/libgit2.dll";
     });
     patchLibCommand = {
@@ -59,7 +60,7 @@ let
            ${libFileName.unix}
       '';
       darwin = ''
-        ${racket} ${scripts}/patch-darwin-dylib.rkt \
+        ${pkgs.racket} ${scripts}/patch-darwin-dylib.rkt \
           --llvm-objdump ${pkgs.llvm}/bin/llvm-objdump \
           --install_name_tool \
           ${pkgs.darwin.binutils-unwrapped}/bin/install_name_tool \
@@ -84,7 +85,7 @@ in {
           else
             "unix";
           systemForBuild = pkgsMaybeCross.buildPlatform.config;
-          built = mkBuilt src pkgsMaybeCross;
+          built = mkBuilt { inherit src pkgsMaybeCross; };
         }) platforms;
     };
 
@@ -92,11 +93,10 @@ in {
     let
       racket = "${pkgs.racket}/bin/racket";
       scribble = "${pkgs.racket}/bin/scribble";
-      scripts = "${self}/scripts";
       cpGitignoreApacheMit = ''
         cp ${self}/nix/gitignore-skel .gitignore
-         cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
-         '';
+        cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
+      '';
       mkReadme = scrbl: ''
         ${scribble} --markdown --link-section --dest-name README.md \
            ${scripts}/${scrbl}
@@ -116,7 +116,8 @@ in {
       };
       platformsWithPacked = builtins.mapAttrs (_:
         { os, systemForBuild, rktPlatform, built, ... }@super:
-        with builtins.mapAttrs (k: v: builtins.getAttr os v) osSpecificVars;
+        with builtins.mapAttrs (k: v: builtins.getAttr os v)
+          (osSpecificVars pkgs);
         super // {
           packed = runCmdWithRktJsonArgs {
             inherit pkgs systemForBuild;

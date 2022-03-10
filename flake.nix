@@ -55,7 +55,47 @@
             localSystem = darwinPlatformForBuild.localSystem;
           };
 
-    in { };
+      # In theory, getPkgsForTarget should be enough to do all
+      # other building on any machine.
+      # Unfortunately, pkgs.darwin.binutils-unwrapped (aka cctools-port)
+      # is currently broken on non-Darwin build machines,
+      # so we must cross-build the "packed" package, too.
+
+      withBuilt = builtins.listToAttrs (builtins.map ({ pkgs, ... }@forBuild:
+        let
+          prePlatforms = builtins.map ({ rktPlatform, ... }@forTarget: {
+            name = rktPlatform;
+            value = { pkgsMaybeCross = getPkgsForTarget forBuild forTarget; };
+          }) (import ./nix/platforms.nix);
+        in {
+          name = pkgs.buildPlatform.system;
+          value = build.mkPlatformsWithBuilt {
+            inherit pkgs;
+            platforms = nixpkgs.lib.filterAttrs (_:
+              { pkgsMaybeCross }:
+              (!pkgsMaybeCross.hostPlatform.isDarwin)
+              || pkgs.buildPlatform.isDarwin)
+              (builtins.listToAttrs prePlatforms);
+          };
+        }) platformsForBuild);
+
+      withPacked =
+        builtins.mapAttrs (system: build.mkPlatformsWithPacked) withBuilt;
+
+      darwinCrossPacked =
+        let system = darwinPlatformForBuild.pkgs.buildPlatform.system;
+        in { platformsWithPacked = withPacked.${system}.platformsWithPacked; };
+
+      withCrossPacked = builtins.mapAttrs
+        (system: platformWithPacked: darwinCrossPacked // platformWithPacked)
+        withPacked;
+
+      withPackageBundles =
+        builtins.mapAttrs (system: build.mkPackageBundles) withCrossPacked;
+    in {
+      packages = builtins.mapAttrs (system: { packages, ... }: packages)
+        withPackageBundles;
+    };
 }
 
 #   with nixpkgs.lib;

@@ -1,50 +1,48 @@
-{ self, nixpkgs, systemForBuild, rkt ? import ../version.nix
-, platforms ? import ./platforms.nix, ... }:
-with nixpkgs.lib;
-with builtins;
-with asserts;
+{ self, nixpkgs }:
 let
-  pkgs = import nixpkgs { system = systemForBuild; };
 
-  src = pkgs.fetchFromGitHub rkt.libgit2.src;
-  racket = "${pkgs.racket}/bin/racket";
-  scribble = "${pkgs.racket}/bin/scribble";
-  scripts = "${self}/scripts";
-  cpGitignoreApacheMit = ''
-    cp ${self}/nix/gitignore-skel .gitignore
-    cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
-  '';
-  mkReadme = scrbl: ''
-    ${scribble} --markdown --link-section --dest-name README.md \
-       ${scripts}/${scrbl}
-  '';
+  rkt = import ./version.rkt;
+  flags = (import /flags.nix rkt);
 
-  mkScriptArgsEnv = let
-    lock-info = (importJSON ../flake.lock).nodes.nixpkgs;
-    # otherwise, `sourceInfo`s are JSON-ized as store paths
-    # (libgit2 is ok without this)
-    safeAttrs = [ "lastModifiedDate" "narHash" "rev" "owner" "repo" "ref" ];
-    cleanseSourceInfoAttrs = filterAttrs (k: v: elem k safeAttrs);
-    assertLockGitHub = key:
-      assertMsg (lock-info.${key}.type == "github")
-      ''lock-info.${key} is not of type "github"'';
-    baseArgs = assert assertLockGitHub "locked";
-      assert assertLockGitHub "original"; {
-        pkg-version = rkt.pkgVersion;
-        breaking-change-label = rkt.breakingChangeLabel;
-        system-for-build = systemForBuild;
-        platforms = attrsets.catAttrs "rktPlatform" platforms;
-        libgit2-info = rkt.libgit2.src // { version = rkt.libgit2.version; };
-        self-source-info = cleanseSourceInfoAttrs self.sourceInfo;
-        "nixpkgs-source+lock-info" = cleanseSourceInfoAttrs
-          (lock-info.original // lock-info.locked // nixpkgs.sourceInfo);
+  mkBuilt = { src, pkgsMaybeCross }:
+    pkgsMaybeCross.libgit2.overrideAttrs (oldAttrs: {
+      version = rkt.libgit2.version;
+      src = src;
+      patches = [ ];
+      buildInputs = [ ];
+      cmakeFlags = flags.forHostPlatform pkgsMaybeCross.hostPlatform;
+    });
+
+  runCmdWithRktJsonArgs = { name, systemForBuild, extraArgs ? { }, pkgs, cmd }:
+    with builtins;
+    with pkgs.lib;
+    let
+      lock-info = (importJSON ../flake.lock).nodes.nixpkgs;
+      # otherwise, `sourceInfo`s are JSON-ized as store paths
+      # (libgit2 is ok without this)
+      safeAttrs = [ "lastModifiedDate" "narHash" "rev" "owner" "repo" "ref" ];
+      cleanseSourceInfoAttrs = filterAttrs (k: v: elem k safeAttrs);
+      assertLockGitHub = key:
+        assertMsg (lock-info.${key}.type == "github")
+        ''lock-info.${key} is not of type "github"'';
+      env = {
+        RKT_ENFORCE_ARGS = "1";
+        RKT_JSON_ARGS = toJSON (extraArgs // {
+          pkg-version = rkt.pkgVersion;
+          breaking-change-label = rkt.breakingChangeLabel;
+          system-for-build = systemForBuild;
+          platforms = attrsets.catAttrs "rktPlatform" platforms;
+          libgit2-info = rkt.libgit2.src // { version = rkt.libgit2.version; };
+          self-source-info = cleanseSourceInfoAttrs self.sourceInfo;
+          "nixpkgs-source+lock-info" = assert assertLockGitHub "locked";
+            assert assertLockGitHub "original";
+            cleanseSourceInfoAttrs
+            (lock-info.original // lock-info.locked // nixpkgs.sourceInfo);
+        });
       };
-  in extraArgs: {
-    RKT_JSON_ARGS = toJSON (extraArgs // baseArgs);
-    RKT_ENFORCE_ARGS = "1";
-  };
+    in pkgs.runCommand name env cmd;
 
-  osSpecific = rec {
+  osSpecificVars = rec {
     libFileName = {
       windows = "libgit2-${rkt.soVersion}.dll";
       darwin = "libgit2.${rkt.soVersion}.dylib";
@@ -70,116 +68,116 @@ let
     };
   };
 
-  osSpecificForHostPlatform = { isWindows, isDarwin, ... }:
-    let
-      os =
-        if isWindows then "windows" else if isDarwin then "darwin" else "unix";
-    in mapAttrs (k: v: getAttr os v) osSpecific;
-
-  mkForHost = { nixSystem, rktPlatform, crossAttr }:
-    let
-
-      pkgsMaybeCross = if nixSystem == systemForBuild then
-        pkgs
-      else
-        pkgs.pkgsCross.${crossAttr};
-
-      hostPlatform = pkgsMaybeCross.hostPlatform;
-
-    in with osSpecificForHostPlatform hostPlatform; {
-
-      name = rktPlatform;
-
-      value = rec {
-
-        built = pkgsMaybeCross.libgit2.overrideAttrs (oldAttrs: {
-          version = rkt.libgit2.version;
-          src = src;
-          patches = [ ];
-          buildInputs = [ ];
-          cmakeFlags = (import ./flags.nix rkt).forHostPlatform hostPlatform;
-        });
-
-        packed = pkgs.runCommandLocal "${rktPlatform}-${rkt.pkgVersion}"
-          (mkScriptArgsEnv {
-            "arch+os" = rktPlatform;
-            lib-filename = libFileName;
-          }) ''
-            mkdir -p $out/${rktPlatform}
-            cd $out/${rktPlatform}
-            cp \
-               ${src}/COPYING \
-               ${src}/AUTHORS \
-               ${src}/git.git-authors \
-               ${src}/docs/changelog.md \
-               .
-            cp ${src}/README.md README-libgit2.md
-            ${cpGitignoreApacheMit}
-            cp ${built}/${builtLibPath} ${libFileName}
-            chmod +w ${libFileName}
-            ${patchLibCommand}
-            chmod -w ${libFileName}
-            ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
-            ${mkReadme "platform-readme.scrbl"}
-          '';
-      };
-    };
-
-  crossAttrIsDarwin = crossAttr:
-    (!isString crossAttr) || pkgs.pkgsCross.${crossAttr}.hostPlatform.isDarwin;
-
-  canBuildForHost = { crossAttr, ... }:
-    pkgs.buildPlatform.isDarwin || (!crossAttrIsDarwin crossAttr);
-
-  packagesByHost =
-    listToAttrs (map mkForHost (filter canBuildForHost platforms));
-
-  meta = pkgs.runCommandLocal "native-libs-${rkt.pkgVersion}"
-    (mkScriptArgsEnv { }) ''
-      mkdir -p $out/native-libs
-      cd $out/native-libs
-      ${cpGitignoreApacheMit}
-      ${racket} ${scripts}/mk-info-rkt.rkt --meta-pkg > info.rkt
-      ${mkReadme "meta-readme.scrbl"}
-    '';
-
-  mkBundle =
-    { name ? "bundle", hosts ? attrNames packagesByHost, withMeta ? false }:
-    let
-      maybeMeta = if withMeta then [ meta ] else [ ];
-      packedPackagesForHosts = map (h: packagesByHost.${h}.packed) hosts;
-    in pkgs.symlinkJoin {
-      name = "racket-libgit2-native-pkgs-${rkt.pkgVersion}-${name}";
-      paths = maybeMeta ++ packedPackagesForHosts;
-    };
-
 in {
-
-  inherit mkBundle;
-
-  packages = lists.foldr trivial.mergeAttrs ({
-
-    inherit meta;
-
-    all = mkBundle {
-      name = "all";
-      withMeta = true;
-      hosts = attrNames packagesByHost;
+  mkPlatformsWithBuilt = { pkgs, platforms }@super:
+    let src = pkgs.fetchFromGitHub rkt.libgit2.src;
+    in super // {
+      platformsWithBuilt = builtins.mapAttrs (rktPlatform:
+        { pkgsMaybeCross }: rec {
+          inherit src rktPlatform;
+          isDarwin = pkgsMaybeCross.hostPlatform.isDarwin;
+          isWindows = pkgsMaybeCross.hostPlatform.isWindows;
+          os = if isWindows then
+            "windows"
+          else if isDarwin then
+            "darwin"
+          else
+            "unix";
+          systemForBuild = pkgsMaybeCross.buildPlatform.config;
+          built = mkBuilt src pkgsMaybeCross;
+        }) platforms;
     };
 
-  } // optionalAttrs pkgs.buildPlatform.isDarwin (let
-    toHostIfDarwin = { rktPlatform, crossAttr, nixSystem }:
-      lists.optional (crossAttrIsDarwin crossAttr) rktPlatform;
-  in {
-    apple = mkBundle {
-      name = "apple-bundle";
-      hosts = concatMap toHostIfDarwin platforms;
-      withMeta = false;
+  mkPlatformsWithPacked = { pkgs, platformsWithBuilt, ... }@super:
+    let
+      racket = "${pkgs.racket}/bin/racket";
+      scribble = "${pkgs.racket}/bin/scribble";
+      scripts = "${self}/scripts";
+      cpGitignoreApacheMit = ''
+        cp ${self}/nix/gitignore-skel .gitignore
+         cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
+         '';
+      mkReadme = scrbl: ''
+        ${scribble} --markdown --link-section --dest-name README.md \
+           ${scripts}/${scrbl}
+           '';
+    in super // {
+      meta = runCmdWithRktJsonArgs {
+        inherit pkgs;
+        name = "native-libs-${rkt.pkgVersion}";
+        systemForBuild = pkgs.buildPlatform.config;
+        cmd = ''
+          mkdir -p $out/native-libs
+          cd $out/native-libs
+          ${cpGitignoreApacheMit}
+          ${racket} ${scripts}/mk-info-rkt.rkt --meta-pkg > info.rkt
+          ${mkReadme "meta-readme.scrbl"}
+        '';
+      };
+      platformsWithPacked = builtins.mapAttrs (_:
+        { os, systemForBuild, rktPlatform, built, ... }@super:
+        with builtins.mapAttrs (k: v: builtins.getAttr os v) osSpecificVars;
+        super // {
+          packed = runCmdWithRktJsonArgs {
+            inherit pkgs systemForBuild;
+            name = "${rktPlatform}-${rkt.pkgVersion}";
+            extraArgs = {
+              "arch+os" = rktPlatform;
+              lib-filename = libFileName;
+            };
+            cmd = ''
+              mkdir -p $out/${rktPlatform}
+              cd $out/${rktPlatform}
+              cp \
+                 ${src}/COPYING \
+                 ${src}/AUTHORS \
+                 ${src}/git.git-authors \
+                 ${src}/docs/changelog.md \
+                 .
+              cp ${src}/README.md README-libgit2.md
+              ${cpGitignoreApacheMit}
+              cp ${built}/${builtLibPath} ${libFileName}
+              chmod +w ${libFileName}
+              ${patchLibCommand}
+              chmod -w ${libFileName}
+              ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
+              ${mkReadme "platform-readme.scrbl"}
+            '';
+          };
+        }) platformsWithBuilt;
     };
-  })) (mapAttrsToList (host:
-    { built, packed }: {
-      "built-${host}" = built;
-      "packed-${host}" = packed;
-    }) packagesByHost);
 
+  mkPackageBundles = { pkgs, meta, platformsWithPacked, ... }@super:
+    with pkgs.lib;
+    let
+      partitioned = attrsets.mapAttrsToList ({ isDarwin, packed, ... }:
+        if isDarwin then {
+          packedApple = packed;
+        } else {
+          packedSansApple = packed;
+        }) platformsWithPacked;
+      mkBundleName = name:
+        "racket-libgit2-native-pkgs-${rkt.pkgVersion}-${name}";
+    in super // rec {
+      apple = pkgs.symlinkJoin {
+        name = mkBundleName "apple-bundle";
+        paths = attrsets.catAttrs "packedApple" partitioned;
+      };
+      sansApple = pkgs.symlinkJoin {
+        name = mkBundleName "sans-apple-bundle";
+        paths = [ meta ] ++ attrsets.catAttrs "packedSansApple" partitioned;
+      };
+      all = pkgs.symlinkJoin {
+        name = mkBundleName "all";
+        paths = [ apple sansApple ];
+      };
+      packages =
+        lists.foldr trivial.mergeAttrs { inherit meta apple sansApple all; }
+        (attrsets.mapAttrsToList (host:
+          { built, packed, ... }: {
+            "built-${host}" = built;
+            "packed-${host}" = packed;
+          }) platformsWithPacked);
+
+    };
 }

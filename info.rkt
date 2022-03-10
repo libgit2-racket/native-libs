@@ -4,7 +4,7 @@
 (define pkg-name "libgit2-native-libs")
 (define collection 'multi)
 
-(define version "0.0.0.1")
+(define version "0.0.0.2")
 (define pkg-desc "native libraries for \"libgit2\" (meta-package)")
 (define pkg-authors '(philip))
 
@@ -23,3 +23,10 @@
                           #:version ,version]
     ["libgit2-x86_64-win32" #:platform "win32\\x86_64"
                             #:version ,version]))
+
+(define update-implies
+  `("libgit2-x86_64-linux"
+    "libgit2-aarch64-macosx"
+    "libgit2-x86_64-macosx"
+    "libgit2-i386-win32"
+    "libgit2-x86_64-win32"))

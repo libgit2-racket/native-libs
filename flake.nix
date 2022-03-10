@@ -84,11 +84,13 @@
 
       darwinCrossPacked =
         let system = darwinPlatformForBuild.pkgs.buildPlatform.system;
-        in { platformsWithPacked = withPacked.${system}.platformsWithPacked; };
+        in withPacked.${system}.platformsWithPacked;
 
-      withCrossPacked = builtins.mapAttrs
-        (system: platformWithPacked: darwinCrossPacked // platformWithPacked)
-        withPacked;
+      withCrossPacked = builtins.mapAttrs (system:
+        { platformsWithPacked, ... }@nonCross:
+        nonCross // {
+          platformsWithPacked = darwinCrossPacked // platformsWithPacked;
+        }) withPacked;
 
       withPackageBundles =
         builtins.mapAttrs (system: build.mkPackageBundles) withCrossPacked;

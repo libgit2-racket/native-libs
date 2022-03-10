@@ -5,6 +5,19 @@ let
   flags = (import ./flags.nix rkt);
   scripts = "${self}/scripts";
 
+  cpGitignoreApacheMit = ''
+    cp ${self}/nix/gitignore-skel .gitignore
+    cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
+  '';
+  mkInfoRkt = pkgs: flag: ''
+    ${pkgs.racket}/bin/racket ${scripts}/mk-info-rkt.rkt ${flag} > info.rkt
+  '';
+  mkReadme = pkgs: scrbl: ''
+    ${pkgs.racket}/bin/scribble --markdown --link-section \
+      --dest-name README.md \
+      ${scripts}/${scrbl}
+  '';
+
   mkBuilt = { src, pkgsMaybeCross }:
     pkgsMaybeCross.libgit2.overrideAttrs (oldAttrs: {
       version = rkt.libgit2.version;
@@ -13,6 +26,73 @@ let
       buildInputs = [ ];
       cmakeFlags = flags.forHostPlatform pkgsMaybeCross.hostPlatform;
     });
+
+  mkPacked = pkgs:
+    { isWindows, isDarwin, systemForBuild, rktPlatform, built, src, ... }@super:
+    let
+      libFileName = if isWindows then
+        "libgit2-${rkt.soVersion}.dll"
+      else if isDarwin then
+        "libgit2.${rkt.soVersion}.dylib"
+      else
+        "libgit2.so.${rkt.soVersion}";
+
+      builtLibPath =
+        if isWindows then "bin/libgit2.dll" else "lib/${libFileName}";
+
+      patchLibCommand = if isWindows then
+        "echo No patch command needed for Windows DLLs."
+      else if isDarwin then ''
+        ${pkgs.racket}/bin/racket ${scripts}/patch-darwin-dylib.rkt \
+          --llvm-objdump ${pkgs.llvm}/bin/llvm-objdump \
+          --install_name_tool \
+          ${pkgs.darwin.binutils-unwrapped}/bin/install_name_tool \
+          ${libFileName}
+      '' else ''
+        ${pkgs.patchelf}/bin/patchelf --set-rpath \$ORIGIN ${libFileName}
+      '';
+    in super // {
+      packed = runCmdWithRktJsonArgs {
+        inherit pkgs systemForBuild;
+        name = "${rktPlatform}-${rkt.pkgVersion}";
+        extraArgs = {
+          "arch+os" = rktPlatform;
+          lib-filename = libFileName;
+        };
+        cmd = ''
+          mkdir -p $out/${rktPlatform}
+          cd $out/${rktPlatform}
+          cp \
+             ${src}/COPYING \
+             ${src}/AUTHORS \
+             ${src}/git.git-authors \
+             ${src}/docs/changelog.md \
+             .
+          cp ${src}/README.md README-libgit2.md
+          ${cpGitignoreApacheMit}
+          cp ${built}/${builtLibPath} ${libFileName}
+          chmod +w ${libFileName}
+          ${patchLibCommand}
+          chmod -w ${libFileName}
+          ${mkInfoRkt pkgs "--platform-pkg"}
+          ${mkReadme pkgs "platform-readme.scrbl"}
+        '';
+      };
+    };
+
+  mkMeta = pkgs:
+    runCmdWithRktJsonArgs {
+      inherit pkgs;
+      name = "native-libs-${rkt.pkgVersion}";
+      systemForBuild = pkgs.buildPlatform.config;
+      cmd = ''
+        mkdir -p $out/native-libs
+        cd $out/native-libs
+        ${cpGitignoreApacheMit}
+        ${mkInfoRkt pkgs "--meta-pkg"}
+        ${mkReadme pkgs "meta-readme.scrbl"}
+      '';
+    };
 
   runCmdWithRktJsonArgs = { name, systemForBuild, extraArgs ? { }, pkgs, cmd }:
     with builtins;
@@ -32,7 +112,7 @@ let
           pkg-version = rkt.pkgVersion;
           breaking-change-label = rkt.breakingChangeLabel;
           system-for-build = systemForBuild;
-          platforms = attrsets.catAttrs "rktPlatform" platforms;
+          platforms = attrsets.catAttrs "rktPlatform" (import ./platforms.nix);
           libgit2-info = rkt.libgit2.src // { version = rkt.libgit2.version; };
           self-source-info = cleanseSourceInfoAttrs self.sourceInfo;
           "nixpkgs-source+lock-info" = assert assertLockGitHub "locked";
@@ -43,32 +123,6 @@ let
       };
     in pkgs.runCommand name env cmd;
 
-  osSpecificVars = pkgs: rec {
-    libFileName = {
-      windows = "libgit2-${rkt.soVersion}.dll";
-      darwin = "libgit2.${rkt.soVersion}.dylib";
-      unix = "libgit2.so.${rkt.soVersion}";
-    };
-    builtLibPath = ((builtins.mapAttrs (x: so: "lib/${so}") libFileName) // {
-      windows = "bin/libgit2.dll";
-    });
-    patchLibCommand = {
-      windows = "echo No patch command needed for Windows DLLs.";
-      unix = ''
-        ${pkgs.patchelf}/bin/patchelf \
-           --set-rpath \$ORIGIN \
-           ${libFileName.unix}
-      '';
-      darwin = ''
-        ${pkgs.racket} ${scripts}/patch-darwin-dylib.rkt \
-          --llvm-objdump ${pkgs.llvm}/bin/llvm-objdump \
-          --install_name_tool \
-          ${pkgs.darwin.binutils-unwrapped}/bin/install_name_tool \
-          ${libFileName.darwin}
-      '';
-    };
-  };
-
 in {
   mkPlatformsWithBuilt = { pkgs, platforms }@super:
     let src = pkgs.fetchFromGitHub rkt.libgit2.src;
@@ -78,80 +132,23 @@ in {
           inherit src rktPlatform;
           isDarwin = pkgsMaybeCross.hostPlatform.isDarwin;
           isWindows = pkgsMaybeCross.hostPlatform.isWindows;
-          os = if isWindows then
-            "windows"
-          else if isDarwin then
-            "darwin"
-          else
-            "unix";
           systemForBuild = pkgsMaybeCross.buildPlatform.config;
           built = mkBuilt { inherit src pkgsMaybeCross; };
         }) platforms;
     };
 
   mkPlatformsWithPacked = { pkgs, platformsWithBuilt, ... }@super:
-    let
-      racket = "${pkgs.racket}/bin/racket";
-      scribble = "${pkgs.racket}/bin/scribble";
-      cpGitignoreApacheMit = ''
-        cp ${self}/nix/gitignore-skel .gitignore
-        cp ${self}/LICENSE-Apache-2.0.txt ${self}/LICENSE-MIT.txt .
-      '';
-      mkReadme = scrbl: ''
-        ${scribble} --markdown --link-section --dest-name README.md \
-           ${scripts}/${scrbl}
-           '';
-    in super // {
-      meta = runCmdWithRktJsonArgs {
-        inherit pkgs;
-        name = "native-libs-${rkt.pkgVersion}";
-        systemForBuild = pkgs.buildPlatform.config;
-        cmd = ''
-          mkdir -p $out/native-libs
-          cd $out/native-libs
-          ${cpGitignoreApacheMit}
-          ${racket} ${scripts}/mk-info-rkt.rkt --meta-pkg > info.rkt
-          ${mkReadme "meta-readme.scrbl"}
-        '';
-      };
-      platformsWithPacked = builtins.mapAttrs (_:
-        { os, systemForBuild, rktPlatform, built, ... }@super:
-        with builtins.mapAttrs (k: v: builtins.getAttr os v)
-          (osSpecificVars pkgs);
-        super // {
-          packed = runCmdWithRktJsonArgs {
-            inherit pkgs systemForBuild;
-            name = "${rktPlatform}-${rkt.pkgVersion}";
-            extraArgs = {
-              "arch+os" = rktPlatform;
-              lib-filename = libFileName;
-            };
-            cmd = ''
-              mkdir -p $out/${rktPlatform}
-              cd $out/${rktPlatform}
-              cp \
-                 ${src}/COPYING \
-                 ${src}/AUTHORS \
-                 ${src}/git.git-authors \
-                 ${src}/docs/changelog.md \
-                 .
-              cp ${src}/README.md README-libgit2.md
-              ${cpGitignoreApacheMit}
-              cp ${built}/${builtLibPath} ${libFileName}
-              chmod +w ${libFileName}
-              ${patchLibCommand}
-              chmod -w ${libFileName}
-              ${racket} ${scripts}/mk-info-rkt.rkt --platform-pkg > info.rkt
-              ${mkReadme "platform-readme.scrbl"}
-            '';
-          };
-        }) platformsWithBuilt;
+    super // {
+      meta = mkMeta pkgs;
+      platformsWithPacked =
+        builtins.mapAttrs (_: mkPacked pkgs) platformsWithBuilt;
     };
 
   mkPackageBundles = { pkgs, meta, platformsWithPacked, ... }@super:
     with pkgs.lib;
     let
-      partitioned = attrsets.mapAttrsToList ({ isDarwin, packed, ... }:
+      partitioned = attrsets.mapAttrsToList (_:
+        { isDarwin, packed, ... }:
         if isDarwin then {
           packedApple = packed;
         } else {

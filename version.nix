@@ -1,8 +1,8 @@
 {
-  pkgVersion = "0.0.0.1"; # info.rkt `(define version ...)`
+  pkgVersion = "0.0.0.2"; # info.rkt `(define version ...)`
   breakingChangeLabel = ""; # to change package names for breaking changes
   soVersion = "1.4"; # e.g. for `ffi-lib`
-  deprecateHard = false;
+  deprecateHard = true; # controls -DDEPRECATE_HARD=ON
   libgit2 = rec {
     version = "1.4.2"; # IMPORTANT! MUST also update sha256 below.
     src = {

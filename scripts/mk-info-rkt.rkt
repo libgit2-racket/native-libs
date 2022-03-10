@@ -69,26 +69,29 @@
                            #:pkg-version pkg-version
                            #:breaking-change-label breaking-change-label
                            #:lib-filename lib-filename)
-  #`{(define pkg-name #,(Q (make-pkg-name breaking-change-label arch+os)))
-     (define collection "libgit2") ;; copy-foreign-libs requires a collection
-     ;;
-     (define version #,(Q pkg-version))
-     (define pkg-desc #,(Q (++ "native libraries for \"libgit2\" on \"" arch+os "\"")))
-     (define pkg-authors '(philip))
-     ;;
-     (define install-platform #,(Q (arch+os->platform-spec arch+os)))
-     (define copy-foreign-libs '(#,(Q lib-filename)))
-     ;;
-     (define license
-       '((GPL-2.0-only WITH GCC-exception-2.0)
-         AND
-         (Apache-2.0 OR MIT)))
-     ;;
-     (define deps '("base"))})
+  (list
+   #`{(define pkg-name #,(Q (make-pkg-name breaking-change-label arch+os)))
+      (define collection "libgit2") ;; copy-foreign-libs requires a collection
+      ;;
+      (define version #,(Q pkg-version))
+      (define pkg-desc #,(Q (++ "native libraries for \"libgit2\" on \"" arch+os "\"")))
+      (define pkg-authors '(philip))
+      ;;
+      (define install-platform #,(Q (arch+os->platform-spec arch+os)))
+      (define copy-foreign-libs '(#,(Q lib-filename)))
+      ;;
+      (define license
+        '((GPL-2.0-only WITH GCC-exception-2.0)
+          AND
+          (Apache-2.0 OR MIT)))
+      ;;
+      (define deps '("base"))}))
 
 (define (meta-pkg-body #:pkg-version pkg-version
                        #:breaking-change-label breaking-change-label
                        #:platforms platforms)
+  (define sorted-platforms
+    (sort platforms arch+os<?))
   (define (->pkg-name suffix)
     (make-pkg-name breaking-change-label suffix))
   (define (column+ loc n)
@@ -104,7 +107,7 @@
       (cons
        (quasisyntax/loc loc
          "base")
-       (for/list ([arch+os (in-list (sort platforms arch+os<?))]
+       (for/list ([arch+os (in-list sorted-platforms)]
                   [this-line (in-range (add1 line0) +inf.0 2)])
          (let* ([loc (with-line loc this-line)]
                 [name-loc (column+ loc 1)] ;; open bracket
@@ -129,18 +132,28 @@
              (syntax/loc loc
                [~name ~#:platform ~platform
                       ~#:version ~pkg-version])))))))
-  #`{(define pkg-name #,(Q (->pkg-name "native-libs")))
-     (define collection 'multi)
-     ;;
-     (define version #,(Q pkg-version))
-     (define pkg-desc #,(Q "native libraries for \"libgit2\" (meta-package)"))
-     (define pkg-authors '(philip))
-     ;;
-     (define license
-       '(Apache-2.0 OR MIT))
-     ;;
-     (define deps
-       `#,(Q make-deps))})
+  (define (make-update-implies loc)
+    (let ([loc (column+ loc 1)]) ; offset for open paren
+      (for/list ([arch+os (in-list sorted-platforms)]
+                 [line (in-naturals (srcloc-line loc))])
+        (define name (->pkg-name arch+os))
+        (->stx name (with-line loc line)))))
+  (list
+   #`{(define pkg-name #,(Q (->pkg-name "native-libs")))
+      (define collection 'multi)
+      ;;
+      (define version #,(Q pkg-version))
+      (define pkg-desc #,(Q "native libraries for \"libgit2\" (meta-package)"))
+      (define pkg-authors '(philip))
+      ;;
+      (define license
+        '(Apache-2.0 OR MIT))
+      ;;
+      (define deps
+        `#,(Q make-deps))}
+   #\newline
+   #`{(define update-implies
+        `#,(Q make-update-implies))}))
 
 (define arch+os->platform-spec
   (match-lambda
@@ -153,8 +166,10 @@
     [arch+os
      arch+os]))
 
-(define (write-info-rkt body)
+(define (write-info-rkt body*)
   (printf "#lang info\n;; SPDX-License-Identifier: ~s\n\n"
           '(Apache-2.0 OR MIT))
-  (write-string (syntax->string body))
-  (newline))
+  (for ([body (in-list body*)])
+    (unless (eqv? #\newline body)
+      (write-string (syntax->string body)))
+    (newline)))

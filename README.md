@@ -7,10 +7,11 @@ This is the Racket package `libgit2-x86_64-linux`, which contains the
 
 The contents of this package were generated using a [Nix
 flake](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html)
-with NAR hash `sha256-QIpHRAK5I4a/7rPlrclR6cgaJet8lOXRbov6NDFyMDs=`,
-last modified on 2022-03-10T16:44:21Z. The flake is from Git commit
-37f6d2229968c755617dcde4cb6e53f1274de8cc: if you are reading this file
-in a Git repository with the same structure as
+with NAR hash `sha256-Xcs3KC7hcuuXo7Ixc0SzIAz7OXOKuOvtcOh4oDJBiR8=`,
+last modified on 2022-03-10T21:03:10Z. The flake is from Git commit
+[`4976f01fb9ed1afddfc2150735cdad278f3c36b9`](https://github.com/LiberalArtist/native-libgit2-pkgs/commit/4976f01fb9ed1afddfc2150735cdad278f3c36b9):
+if you are reading this file in a Git repository with the same structure
+as
 [https://github.com/LiberalArtist/native-libgit2-pkgs](https://github.com/LiberalArtist/native-libgit2-pkgs),
 that commit should be part of the
 [`build-scripts`](https://github.com/LiberalArtist/native-libgit2-pkgs/tree/build-scripts)

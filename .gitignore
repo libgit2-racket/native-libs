@@ -1,6 +1,11 @@
 # produced by `nix build`
 result
-####################
+#########################
+# Working directories:
+/trees/
+/volatile/
+/scratch/
+#########################
 # Generic:
 *~
 \#*

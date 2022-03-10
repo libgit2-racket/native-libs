@@ -94,36 +94,42 @@
 
       withPackageBundles =
         builtins.mapAttrs (system: build.mkPackageBundles) withCrossPacked;
-    in {
-      packages = builtins.mapAttrs (system: { packages, ... }: packages)
-        withPackageBundles;
+
+      mapPackageBundles = proc: builtins.mapAttrs proc withPackageBundles;
+
+      appName = "write-all-built-racket-packages";
+
+    in rec {
+      packages = mapPackageBundles (system:
+        { packages, all, pkgs, ... }:
+        packages // {
+          run = pkgs.writeShellApplication {
+            name = appName;
+            runtimeInputs = [ pkgs.racket ];
+            text = let rktFile = "${self}/scripts/run.rkt";
+            in ''
+              racket -N ${rktFile} \
+                -- ${rktFile} \
+                --run --run-file "$0" --result ${all} \
+                -- ''${1+"$@"}
+            '';
+          };
+        });
+
+      defaultPackage = mapPackageBundles (system:
+        { pkgs, apple, sans-apple, ... }:
+        if pkgs.buildPlatform.isDarwin then apple else sans-apple);
+
+      apps = builtins.mapAttrs (system:
+        { run, ... }: {
+          "${appName}" = {
+            type = "app";
+            program = "${run}/bin/${appName}";
+          };
+        }) packages;
+
+      defaultApp =
+        builtins.mapAttrs (_: apps: builtins.getAttr appName apps) apps;
+
     };
 }
-
-#   with nixpkgs.lib;
-#   with attrsets;
-#   with builtins;
-#   let
-#
-#     rkt = import ./version.nix;
-#
-#     platforms = import ./nix/platforms.nix;
-#
-#     builtByPlatform = genForAllSystems (systemForBuild:
-#      import ./nix/build.nix {
-#       inherit self nixpkgs systemForBuild rkt platforms;
-#     });
-
-# in {
-
-#   rkt = rkt // { inherit platforms; };
-
-#  src = head (catAttrs "src" (attrValues builtByPlatform));
-
-#  packages = genForAllSystems
-#   (systemForBuild: builtByPlatform.${systemForBuild}.packages);
-
-# defaultPackage =
-#   genForAllSystems (systemForBuild: self.packages.${systemForBuild}.all);
-# };
-#}

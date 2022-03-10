@@ -161,16 +161,16 @@ in {
         name = mkBundleName "apple-bundle";
         paths = attrsets.catAttrs "packedApple" partitioned;
       };
-      sansApple = pkgs.symlinkJoin {
+      sans-apple = pkgs.symlinkJoin {
         name = mkBundleName "sans-apple-bundle";
         paths = [ meta ] ++ attrsets.catAttrs "packedSansApple" partitioned;
       };
       all = pkgs.symlinkJoin {
         name = mkBundleName "all";
-        paths = [ apple sansApple ];
+        paths = [ apple sans-apple ];
       };
       packages =
-        lists.foldr trivial.mergeAttrs { inherit meta apple sansApple all; }
+        lists.foldr trivial.mergeAttrs { inherit meta apple sans-apple all; }
         (attrsets.mapAttrsToList (host:
           { built, packed, ... }: {
             "built-${host}" = built;

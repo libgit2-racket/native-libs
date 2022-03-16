@@ -6,12 +6,19 @@
       type = "github";
       owner = "NixOs";
       repo = "nixpkgs";
-      # NOTE: the nixpkgs version used determines MACOSX_VERSION_MIN
+      # NOTE: the nixpkgs version used here determines MACOSX_VERSION_MIN
       ref = "nixos-21.11";
+    };
+    nixpkgsForGlibc = {
+      type = "github";
+      owner = "NixOs";
+      repo = "nixpkgs";
+      ref = "16.09";
+      flake = false;
     };
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, nixpkgsForGlibc }:
     let
 
       build = import ./nix/build.nix { inherit self nixpkgs; };

@@ -16,9 +16,27 @@
         "type": "github"
       }
     },
+    "nixpkgsForGlibc": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1475375830,
+        "narHash": "sha256-8K9wvu82flzlzpU1uJv/T8IaLGQlsCASwjxGcrVjpbM=",
+        "owner": "NixOs",
+        "repo": "nixpkgs",
+        "rev": "f22817d8d2bc17d2bcdb8ac4308a4bce6f5d1d2b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOs",
+        "ref": "16.09",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "nixpkgsForGlibc": "nixpkgsForGlibc"
       }
     }
   },

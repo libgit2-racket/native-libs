@@ -1,7 +1,4 @@
-{ deprecateHard ? false, ... }: rec {
-  forHostPlatform = { isWindows, config, ... }:
-    common ++ (if isWindows then mkWindows config else unix);
-
+{ deprecateHard ? false, ... }: {
   common = (if deprecateHard then [ "-DDEPRECATE_HARD=ON" ] else [ ]) ++ [
     "-DREGEX_BACKEND=builtin" # maybe via Racket, one day?
     # re libssh2, see:
@@ -17,13 +14,4 @@
 
   unix = [ "-DUSE_HTTPS=OpenSSL-Dynamic" ];
 
-  mkWindows = (nixSystem: [
-    "-DDLLTOOL=${nixSystem}-dlltool"
-    "-DCMAKE_RC_COMPILER=${nixSystem}-windres"
-    # TODO use's racket's openssl
-    "-DCMAKE_C_FLAGS=-static-libgcc"
-    "-DCMAKE_CXX_FLAGS=-static-libgcc" # -static-libstdc++"
-    "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc" # -static-libstdc++"
-    "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc" # -static-libstdc++"
-  ]);
 }

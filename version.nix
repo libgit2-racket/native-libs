@@ -1,5 +1,5 @@
 {
-  pkgVersion = "0.0.0.2"; # info.rkt `(define version ...)`
+  pkgVersion = "0.0.0.3"; # info.rkt `(define version ...)`
   breakingChangeLabel = ""; # to change package names for breaking changes
   soVersion = "1.4"; # e.g. for `ffi-lib`
   deprecateHard = true; # controls -DDEPRECATE_HARD=ON
@@ -8,8 +8,7 @@
     src = {
       sha256 = "0xd5w2kzdafipf10sdjmrzzsi12q8rkpcafajwlnmwvrbg6ldvs5";
       rev = "v${version}";
-      owner = "libgit2";
-      repo = "libgit2";
+      url = "https://github.com/libgit2/libgit2";
     };
   };
 }

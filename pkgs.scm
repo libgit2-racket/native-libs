@@ -8,7 +8,66 @@
              (gnu packages)
              (gnu packages base) ;; glibc
              (gnu packages commencement) ;; make-gcc-toolchain
-             (gnu packages gcc))
+             (gnu packages gcc)
+             (gnu packages python)
+             (gnu packages racket)
+             (gnu packages version-control))
+
+(define-public install_name_tool.rkt
+  (file-append (package-source racket-vm-cs)
+               "racket/src/mac/install_name_tool.rkt"))
+
+(define-public libgit2-for-racket
+  (package
+    (inherit libgit2)
+    (name "libgit2")
+    (version "1.4.2")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/libgit2/libgit2")
+             (commit (string-append "v" version))))
+       (sha256
+        (base32
+         ;; Hooray! This is compatible with Nix.
+         "0xd5w2kzdafipf10sdjmrzzsi12q8rkpcafajwlnmwvrbg6ldvs5"))
+       (file-name (git-file-name name version))))
+    (inputs '())
+    (propagated-inputs '())
+    (native-inputs
+     (list python))
+    (arguments
+     (substitute-keyword-arguments (package-arguments libgit2)
+       ((#:tests? _ #t)
+        ;; TODO: need to work around OpenSSL-Dynamic
+        #f)
+       ((#:phases std-phases #~%standard-phases)
+        #~(modify-phases #$std-phases
+            (add-before 'check 'add-clar-alias
+              (lambda args
+                ;; workaround until the Guix definition moves to 1.4 series
+                (when (file-exists? "libgit2_tests")
+                  ;; it would have .exe for mingw, which we can't run anyway
+                  (copy-file "libgit2_tests" "libgit2_clar"))))))
+       ((#:configure-flags _ ''())
+        #~(append
+           #$(let ((sys (or (%current-target-system)
+                            (%current-system))))
+               (if (target-mingw? sys)
+                   #~`("-DCMAKE_C_FLAGS=-static-libgcc"
+                       "-DCMAKE_CXX_FLAGS=-static-libgcc"
+                       "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc"
+                       "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc"
+                       #$(string-append "-DCMAKE_RC_COMPILER=" sys "-windres")
+                       #$(string-append "-DDLLTOOL=" sys "-dlltool"))
+                   #~`("-DUSE_HTTPS=OpenSSL-Dynamic")))
+           `("-DDEPRECATE_HARD=ON"
+             "-DREGEX_BACKEND=builtin"
+             "-DUSE_SSH=OFF"
+             "-DUSE_HTTP_PARSER=builtin"
+             "-DUSE_BUNDLED_ZLIB=ON"
+             "-DUSE_NTLMCLINT=OFF")))))))
 
 ;; glibc : distro
 ;; -----------------------------
@@ -79,4 +138,13 @@
 (define-public gcc-glibc-2.24-toolchain
   (make-gcc-toolchain gcc glibc-2.24))
 
-gcc-glibc-2.31-toolchain
+;; see derivation-log-file and log-file from (guix store)
+
+(list
+  (package-with-c-toolchain
+   libgit2-for-racket
+   `(("gcc-toolchain" ,gcc-glibc-2.31-toolchain)))
+  (with-parameters ((%current-target-system "x86_64-w64-mingw32"))
+    libgit2-for-racket)
+  (with-parameters ((%current-target-system "i686-w64-mingw32"))
+    libgit2-for-racket))

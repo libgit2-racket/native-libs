@@ -4,7 +4,7 @@
 #   the representation used by `setup/matching-platform`)
 # supportedForBuild:
 #   if present/true, can be used as the build (vs. host/target) platform
-# crossAttr:
+# nixAttr:
 #   the Nix attribute under `nixpkgs.lib.examples` to use
 #   (According to <https://nix.dev/tutorials/cross-compilation>,
 #   "these attribute names for cross compilation packages have been
@@ -18,24 +18,24 @@
 [
   rec {
     rktPlatform = "x86_64-linux";
-    crossAttr = "gnu64";
+    guixSystem = rktPlatform;
     supportedForBuild = true;
   }
-  {
+  rec {
     rktPlatform = "x86_64-win32";
-    crossAttr = "mingwW64";
+    guixSystem = "x86_64-w64-mingw32";
+  }
+  rec {
+    rktPlatform = "i386-win32";
+    guixSystem = "i686-w64-mingw32";
   }
   {
-    rktPlatform = "i386-win32";
-    crossAttr = "mingw32";
-  }
-  rec {
     rktPlatform = "x86_64-macosx";
-    crossAttr = "x86_64-darwin";
+    nixAttr = "x86_64-darwin";
     supportedForBuild = true;
   }
-  rec {
+  {
     rktPlatform = "aarch64-macosx";
-    crossAttr = "aarch64-darwin";
+    nixAttr = "aarch64-darwin";
   }
 ]

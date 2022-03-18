@@ -105,50 +105,6 @@
       (non-apple-libgit2->extracted
        (package-with-old-stable-libc libgit2))))))
 
-(define-public install-name-tool-shim
-  (let ((src-pth "racket/src/mac/install_name_tool.rkt"))
-    ;; racket-minimal is too minimal for `raco exe`
-    (package
-      (name "install-name-tool-shim")
-      (version (string-append "0-rkt" (package-version racket)))
-      (source (package-source racket-vm-cs))
-      (native-inputs
-       (list racket)) ;; ... cross ...
-      (build-system copy-build-system)
-      (arguments
-       (list
-        #:install-plan
-        #~`((#$src-pth ,(string-append "lib/"
-                                       (strip-store-file-name #$output)
-                                       "/")))
-        #:phases
-        #~(modify-phases %standard-phases
-            (add-after 'install 'build
-              (lambda* (#:key native-inputs inputs #:allow-other-keys)
-                (with-directory-excursion #$output
-                  (let ((rkt-src
-                         (string-append "lib/"
-                                        (strip-store-file-name #$output)
-                                        "/install_name_tool.rkt"))
-                        (raco
-                         (search-input-file (or native-inputs inputs)
-                                            "/bin/raco")))
-                    (mkdir-p "bin")
-                    (invoke raco "make" "--vv" rkt-src)
-                    (invoke raco
-                            "exe"
-                            "--launcher"
-                            "--vv"
-                            "-o" "bin/install_name_tool"
-                            rkt-src))))))))
-      (home-page (string-append "https://github.com/racket/racket/blob/v"
-                                (package-version racket)
-                                "/"
-                                src-pth))
-      (synopsis "Limited shim for install_name_tool")
-      (description "Darwin's @code{cctools} (similar to GNU @code{binutils}) includes a program called @code{install_name_tool}.  This package provides a very limited replacement, implemented in and used by Racket.")
-      (license (list license:asl2.0 license:expat)))))
-
 ;; see derivation-log-file and log-file from (guix store)
 (define-public platforms-extracted
   (append (map (match-lambda

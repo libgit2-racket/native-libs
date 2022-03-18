@@ -55,7 +55,7 @@ let
         #:export (apple-platforms))
 
       (define apple-platforms
-        `(${concatStringsSep "\n    " (map nameToQq names)})))
+        `(${concatStringsSep "\n    " (map nameToQq names)}))
     '';
 
   fromNixScm = let
@@ -102,12 +102,26 @@ let
         inherit fromNixScm;
         appleScm = mkAppleScm false;
       } ''
-        mkdir -p $out
-        cd $out
+        mkdir -p $out/guix-modules
+        cp ${self}/channels.scm $out
+        cd $out/guix-modules
         cp -r ${self}/guix/* .
         cp ${self}/channels.scm ${self}/LICENSE* .
         cp $fromNixScmPath from-nix.scm
         cp $appleScmPath apple.scm
+      '';
+
+      guixWithApple = let appleExtractedDir = "apple-extracted";
+      in pkgs.runCommand (mkNixPkgName "guix-plus-apple") {
+        passAsFile = [ "appleScm" ];
+        appleScm = mkAppleScm appleExtractedDir;
+      } ''
+        cp -as ${guixSansApple}/ $out
+        chmod +w $out/guix-modules
+        cd $out/guix-modules
+        rm apple.scm
+        cp $appleScmPath apple.scm
+        ln -s ${apple} ${appleExtractedDir}
       '';
     } // (builtins.listToAttrs (builtins.concatMap
       ({ name, built, extracted }: [

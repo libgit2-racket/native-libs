@@ -39,6 +39,6 @@
       }) [ pkgsLinux pkgsDarwin ]);
 
       defaultPackage =
-        builtins.mapAttrs (_: builtins.getAttr "guixSansApple") packages;
+        builtins.mapAttrs (_: builtins.getAttr "guixWithApple") packages;
     };
 }

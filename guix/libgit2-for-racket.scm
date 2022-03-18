@@ -175,7 +175,7 @@
     (version pkg-version)
     (source extracted)
     (native-inputs
-     (list patchelf llvm racket))
+     (list patchelf llvm install-name-tool-shim racket))
     (build-system trivial-build-system)
     (arguments
      (list
@@ -185,21 +185,36 @@
             (use-modules (guix build utils))
             (mkdir-p #$output)
             (chdir #$output)
+            (define dll-file?
+              (file-name-predicate "\\.dll$"))
+            (define dylib-file?
+              (file-name-predicate "\\.dylib$"))
             (define srcdir
               #$(package-source this-package))
             (define lib-file-name
-              (let* ((cross-lib-file? (file-name-predicate "\\.(dll|dylib)$"))
-                     (lib-file? (lambda (file stat)
-                                  (or (other-lib? file stat)
-                                      (elf-file? file)))))
+              (let ((lib-file? (lambda (file stat)
+                                 (or (dll-file? file stat)
+                                     (dylib-file? file stat)
+                                     (elf-file? file)))))
                 (match (with-directory-excursion srcdir
                          (find-files "." lib-file?))
                   ((found)
                    (basename found)))))
             (copy-file (string-append srcdir "/" lib-file-name)
                        lib-file-name)
-            (make-file-writable lib-file-name)
-            ))))
+            (unless (dll-file? lib-file-name #f)
+              (make-file-writable lib-file-name)
+              (cond
+               ((dylib-file? lib-file-name #f)
+
+                )
+               (else
+                (invoke (search-input-file %build-inputs
+                                           "/bin/patchelf")
+                        "--set-rpath"
+                        "$ORIGIN"
+                        lib-file-name))))
+            #t))))
     (home-page "localhost")
     (synopsis "TODO")
     (description "TODO")
@@ -212,4 +227,54 @@
               ((racket-platform extracted)
                (make-libgit2-racket-package racket-platform extracted)))
             platforms-extracted)
-install-name-tool-shim
+
+(let ((cctools-version "973.0.1")
+      (ld64-version "609")
+      (revision "0")
+      (commit "04663295d0425abfac90a42440a7ec02d7155fea"))
+  (values #;package-with-c-toolchain
+   (package
+     (name "cctools")
+     (version (git-version (string-append cctools-version
+                                          "-ld64-"
+                                          ld64-version)
+                           revision
+                           commit))
+     (source
+      (origin
+        (method git-fetch)
+        (uri (git-reference
+              (url "https://github.com/tpoechtrager/cctools-port")
+              (commit commit)))
+        (sha256
+         (base32 "0vihfa8y64vvd3pxy8qh4mhcnzinxh9flpz9dvw4wch4zj2nnfjs"))
+        (file-name (git-file-name name version))))
+     (build-system (@ (guix build-system gnu) gnu-build-system))
+     (native-inputs
+      (list
+       clang-toolchain))
+     (arguments
+      (list
+       #:phases
+       #~(modify-phases %standard-phases
+           (add-after 'unpack 'chdir
+             (lambda args
+               (chdir "cctools")))
+           (add-after 'chdir 'find-linux-limits-h
+             (lambda* (#:key inputs #:allow-other-keys)
+               (setenv "CPATH"
+                       (list->search-path-as-string
+                        (cons #$(file-append
+                                 (this-package-native-input "clang-toolchain")
+                                 "/include")
+                              (cond
+                               ((getenv "CPATH")
+                                => (cut search-path-as-string->list <>))
+                               (else
+                                '())))
+                        ":")))))))
+     (home-page "https://github.com/tpoechtrager/cctools-port")
+     (synopsis "TODO")
+     (description "TODO")
+     (license license:apsl2))
+ #;  `(("clang-toolchain" ,clang-toolchain))))

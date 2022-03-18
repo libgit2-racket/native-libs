@@ -46,7 +46,7 @@ let
       nameToQq = name: ''("${name}" ${nameToGexp name})'';
       nameToGexp = name:
         if isString maybeRelBase then
-          '',(local-file "${maybeRelBase}/#{name}")''
+          '',(local-file "${maybeRelBase}/${name}")''
         else
           "#f";
     in ''
@@ -97,7 +97,7 @@ let
         paths = nixpkgs.lib.attrsets.catAttrs "extracted" darwinHosts;
       };
 
-      guixSansApple = pkgs.runCommand (mkNixPkgName "guix-sans-apple") {
+      guix-sans-apple = pkgs.runCommand (mkNixPkgName "guix-sans-apple") {
         passAsFile = [ "fromNixScm" "appleScm" ];
         inherit fromNixScm;
         appleScm = mkAppleScm false;
@@ -106,22 +106,23 @@ let
         cp ${self}/channels.scm $out
         cd $out/guix-modules
         cp -r ${self}/guix/* .
-        cp ${self}/channels.scm ${self}/LICENSE* .
+        chmod +w aux-files
+        cp ${self}/LICENSE* ./aux-files/
         cp $fromNixScmPath from-nix.scm
         cp $appleScmPath apple.scm
       '';
 
-      guixWithApple = let appleExtractedDir = "apple-extracted";
+      guix-with-apple = let appleExtractedDir = "apple-extracted";
       in pkgs.runCommand (mkNixPkgName "guix-plus-apple") {
         passAsFile = [ "appleScm" ];
         appleScm = mkAppleScm appleExtractedDir;
       } ''
-        cp -as ${guixSansApple}/ $out
+        cp -rL ${guix-sans-apple}/ $out
         chmod +w $out/guix-modules
         cd $out/guix-modules
         rm apple.scm
         cp $appleScmPath apple.scm
-        ln -s ${apple} ${appleExtractedDir}
+        cp -rL ${apple} ${appleExtractedDir}
       '';
     } // (builtins.listToAttrs (builtins.concatMap
       ({ name, built, extracted }: [

@@ -242,7 +242,7 @@
               "/usr/lib/libiconv.2.dylib"
               lib-file-name)))
 
-(define platforms-packed
+(define-public platforms-packed
   (filter-map (match-lambda
                 ((_ #f)
                  #f)
@@ -252,6 +252,8 @@
                                                     extracted))))
               platforms-extracted))
 
-(file-union
- "racket-native-libgit2-pkgs-bundle"
- platforms-packed)
+(define-public union
+  (file-union
+   "racket-native-libgit2-pkgs-bundle"
+   platforms-packed))
+union

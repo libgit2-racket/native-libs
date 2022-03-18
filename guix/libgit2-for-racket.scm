@@ -3,10 +3,11 @@
   #:use-module (apple)
   #:use-module (platforms)
   #:use-module (old-stable-libc)
+  #:use-module (cctools)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   #:use-module (guix utils)
-  #:use-module (guix build-system trivial)
   #:use-module (guix build-system copy)
+  #:use-module (guix build-system trivial)
   #:use-module (guix gexp)
   #:use-module (guix git-download)
   #:use-module (guix packages)
@@ -175,16 +176,19 @@
     (version pkg-version)
     (source extracted)
     (native-inputs
-     (list patchelf llvm install-name-tool-shim racket))
+     (list patchelf llvm cctools racket))
     (build-system trivial-build-system)
     (arguments
      (list
       #:builder
       (with-imported-modules '((guix build utils))
         #~(begin
-            (use-modules (guix build utils))
+            (use-modules (guix build utils)
+                         (ice-9 popen))
             (mkdir-p #$output)
             (chdir #$output)
+            (define racket
+              (search-input-file %build-inputs "/bin/racket"))
             (define dll-file?
               (file-name-predicate "\\.dll$"))
             (define dylib-file?
@@ -206,11 +210,43 @@
               (make-file-writable lib-file-name)
               (cond
                ((dylib-file? lib-file-name #f)
-
-                )
+                (define install_name_tool
+                  (search-input-file %build-inputs "/bin/install_name_tool"))
+                (define objdump
+                  (search-input-file %build-inputs "/bin/llvm-objdump"))
+                ;; patch id
+                (invoke install_name_tool "-id" lib-file-name lib-file-name)
+                ;; patch libiconv
+                (define dylibs-used
+                  (let* ((port (open-pipe* OPEN_READ
+                                          objdump
+                                          "--macho"
+                                          "--dylibs-used"
+                                          lib-file-name))
+                         (str (get-string-all port)))
+                    (close-pipe port)
+                    str))
+                (define nix-libiconv
+                  ;; FIXME: Why doesn't guile like this regexp?
+                  (let* ((px "(?<=\\s)/nix/store/\\S+/libiconv[\\d\\.]*\\.dylib(?=\\s)")
+                         (rkt-expr
+                          `(write (regexp-match (pregexp ,px) ,dylibs-used)))
+                         (port (open-pipe* OPEN_READ
+                                           racket
+                                           "-e"
+                                           (format #f "~s" rkt-expr)))
+                         (result (read port)))
+                    (close-pipe port)
+                    (match result
+                      ((str)
+                       str))))
+                (invoke install_name_tool
+                        "-change"
+                        nix-libiconv
+                        "/usr/lib/libiconv.2.dylib"
+                        lib-file-name))
                (else
-                (invoke (search-input-file %build-inputs
-                                           "/bin/patchelf")
+                (invoke (search-input-file %build-inputs "/bin/patchelf")
                         "--set-rpath"
                         "$ORIGIN"
                         lib-file-name))))
@@ -227,54 +263,3 @@
               ((racket-platform extracted)
                (make-libgit2-racket-package racket-platform extracted)))
             platforms-extracted)
-
-(let ((cctools-version "973.0.1")
-      (ld64-version "609")
-      (revision "0")
-      (commit "04663295d0425abfac90a42440a7ec02d7155fea"))
-  (values #;package-with-c-toolchain
-   (package
-     (name "cctools")
-     (version (git-version (string-append cctools-version
-                                          "-ld64-"
-                                          ld64-version)
-                           revision
-                           commit))
-     (source
-      (origin
-        (method git-fetch)
-        (uri (git-reference
-              (url "https://github.com/tpoechtrager/cctools-port")
-              (commit commit)))
-        (sha256
-         (base32 "0vihfa8y64vvd3pxy8qh4mhcnzinxh9flpz9dvw4wch4zj2nnfjs"))
-        (file-name (git-file-name name version))))
-     (build-system (@ (guix build-system gnu) gnu-build-system))
-     (native-inputs
-      (list
-       clang-toolchain))
-     (arguments
-      (list
-       #:phases
-       #~(modify-phases %standard-phases
-           (add-after 'unpack 'chdir
-             (lambda args
-               (chdir "cctools")))
-           (add-after 'chdir 'find-linux-limits-h
-             (lambda* (#:key inputs #:allow-other-keys)
-               (setenv "CPATH"
-                       (list->search-path-as-string
-                        (cons #$(file-append
-                                 (this-package-native-input "clang-toolchain")
-                                 "/include")
-                              (cond
-                               ((getenv "CPATH")
-                                => (cut search-path-as-string->list <>))
-                               (else
-                                '())))
-                        ":")))))))
-     (home-page "https://github.com/tpoechtrager/cctools-port")
-     (synopsis "TODO")
-     (description "TODO")
-     (license license:apsl2))
- #;  `(("clang-toolchain" ,clang-toolchain))))

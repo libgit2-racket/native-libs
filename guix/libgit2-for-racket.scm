@@ -7,6 +7,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   #:use-module (guix utils)
   #:use-module (guix build-system copy)
+  #:use-module (guix build-system gnu)
   #:use-module (guix build-system trivial)
   #:use-module (guix gexp)
   #:use-module (guix git-download)
@@ -177,89 +178,124 @@
     (source extracted)
     (native-inputs
      (list patchelf llvm cctools racket))
-    (build-system trivial-build-system)
+    (build-system gnu-build-system)
     (arguments
      (list
-      #:builder
-      (with-imported-modules '((guix build utils))
-        #~(begin
-            (use-modules (guix build utils)
-                         (ice-9 popen))
-            (mkdir-p #$output)
-            (chdir #$output)
-            (define racket
-              (search-input-file %build-inputs "/bin/racket"))
-            (define dll-file?
-              (file-name-predicate "\\.dll$"))
-            (define dylib-file?
-              (file-name-predicate "\\.dylib$"))
-            (define srcdir
-              #$(package-source this-package))
-            (define lib-file-name
-              (let ((lib-file? (lambda (file stat)
-                                 (or (dll-file? file stat)
-                                     (dylib-file? file stat)
-                                     (elf-file? file)))))
-                (match (with-directory-excursion srcdir
-                         (find-files "." lib-file?))
-                  ((found)
-                   (basename found)))))
-            (copy-file (string-append srcdir "/" lib-file-name)
-                       lib-file-name)
-            (unless (dll-file? lib-file-name #f)
-              (make-file-writable lib-file-name)
-              (cond
-               ((dylib-file? lib-file-name #f)
-                (define install_name_tool
-                  (search-input-file %build-inputs "/bin/install_name_tool"))
-                (define objdump
-                  (search-input-file %build-inputs "/bin/llvm-objdump"))
-                ;; patch id
-                (invoke install_name_tool "-id" lib-file-name lib-file-name)
-                ;; patch libiconv
-                (define dylibs-used
-                  (let* ((port (open-pipe* OPEN_READ
-                                          objdump
-                                          "--macho"
-                                          "--dylibs-used"
-                                          lib-file-name))
-                         (str (get-string-all port)))
-                    (close-pipe port)
-                    str))
-                (define nix-libiconv
-                  ;; FIXME: Why doesn't guile like this regexp?
-                  (let* ((px "(?<=\\s)/nix/store/\\S+/libiconv[\\d\\.]*\\.dylib(?=\\s)")
-                         (rkt-expr
-                          `(write (regexp-match (pregexp ,px) ,dylibs-used)))
-                         (port (open-pipe* OPEN_READ
-                                           racket
-                                           "-e"
-                                           (format #f "~s" rkt-expr)))
-                         (result (read port)))
-                    (close-pipe port)
-                    (match result
-                      ((str)
-                       str))))
-                (invoke install_name_tool
-                        "-change"
-                        nix-libiconv
-                        "/usr/lib/libiconv.2.dylib"
-                        lib-file-name))
-               (else
-                (invoke (search-input-file %build-inputs "/bin/patchelf")
-                        "--set-rpath"
-                        "$ORIGIN"
-                        lib-file-name))))
-            #t))))
+      #:modules
+      '((guix build gnu-build-system)
+        (guix build utils)
+        (ice-9 match))
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'unpack
+            (lambda args
+              (mkdir "build")
+              (chdir "build")))
+          (delete 'bootstrap)
+          (delete 'configure)
+          (delete 'build)
+          (delete 'check)
+          (delete 'patch-shebangs)
+          (delete 'strip)
+          (delete 'make-dynamic-linker-cache)
+          (delete 'install-license-files)
+          (add-before 'install 'copy-shared-library
+            (lambda* (#:key source native-inputs #:allow-other-keys)
+              (define dll-file?
+                (file-name-predicate "\\.dll$"))
+              (define dylib-file?
+                (file-name-predicate "\\.dylib$"))
+              (define lib-file-name
+                (let ((lib-file? (lambda (file stat)
+                                   (or (dll-file? file stat)
+                                       (dylib-file? file stat)
+                                       (elf-file? file)))))
+                  (match (with-directory-excursion source
+                           (find-files "." lib-file?))
+                    ((found)
+                     (basename found)))))
+              (copy-file (string-append source "/" lib-file-name)
+                         lib-file-name)
+              (setenv "LIB_FILE_NAME" lib-file-name)
+              (setenv "LIB_FILE_TYPE"
+                      (cond
+                       ((dll-file? lib-file-name #f)
+                        "dll")
+                       ((dylib-file? lib-file-name #f)
+                        "dylib")
+                       (else
+                        "elf")))))
+          (add-after 'copy-shared-library 'patch-shared-library
+            (lambda args
+              (define lib-file-name
+                (getenv "LIB_FILE_NAME"))
+              (define lib-file-type
+                (getenv "LIB_FILE_TYPE"))
+              (unless (equal? "dll" lib-file-type)
+                (make-file-writable lib-file-name)
+                (match lib-file-type
+                  ("elf"
+                   (invoke "patchelf"
+                           "--set-rpath"
+                           "$ORIGIN"
+                           lib-file-name))
+                  ("dylib"
+                   (let ((patch-dylib #$patch-dylib-proc-gexp))
+                     (patch-dylib #:lib-file-name lib-file-name)))))))
+          (replace 'install
+            (lambda args
+              (copy-recursively "." #$output))))
+      #:validate-runpath? #f))
     (home-page "localhost")
     (synopsis "TODO")
     (description "TODO")
     (license
      (list license:asl2.0 license:expat license:gpl2))))
 
-(filter-map (match-lambda
-              ((_ #f)
-               #f)
-              ((racket-platform extracted)
-               (make-libgit2-racket-package racket-platform extracted)))
-            platforms-extracted)
+(define-public patch-dylib-proc-gexp
+  #~(lambda* (#:key native-inputs lib-file-name)
+      ;; patch id
+      (invoke "install_name_tool" "-id" lib-file-name lib-file-name)
+      ;; patch libiconv
+      (define dylibs-used
+        (let* ((port (open-pipe* OPEN_READ
+                                 "llvm-objdump"
+                                 "--macho"
+                                 "--dylibs-used"
+                                 lib-file-name))
+               (str (get-string-all port)))
+          (close-pipe port)
+          str))
+      (define nix-libiconv
+        ;; FIXME: Why doesn't guile like this regexp?
+        (let* ((px "(?<=\\s)/nix/store/\\S+/libiconv[\\d\\.]*\\.dylib(?=\\s)")
+               (rkt-expr
+                `(write (regexp-match (pregexp ,px) ,dylibs-used)))
+               (port (open-pipe* OPEN_READ
+                                 "racket"
+                                 "-e"
+                                 (format #f "~s" rkt-expr)))
+               (result (read port)))
+          (close-pipe port)
+          (match result
+            ((str)
+             str))))
+      (invoke "install_name_tool"
+              "-change"
+              nix-libiconv
+              "/usr/lib/libiconv.2.dylib"
+              lib-file-name)))
+
+(define platforms-packed
+  (filter-map (match-lambda
+                ((_ #f)
+                 #f)
+                ((racket-platform extracted)
+                 (list racket-platform
+                       (make-libgit2-racket-package racket-platform
+                                                    extracted))))
+              platforms-extracted))
+
+(file-union
+ "racket-native-libgit2-pkgs-bundle"
+ platforms-packed)

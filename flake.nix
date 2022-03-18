@@ -51,13 +51,13 @@
               cmd-time-machine = pkgs.writeShellApplication {
                 name = timeMachineBinName;
                 runtimeInputs = [ ];
+                #checkPhase = "echo skip check phase";
                 text = let
                   text = ''
-                    guix time-machine \
+                    GUIX_PACKAGE_PATH=${guixPkg}/guix-modules \
+                      guix time-machine \
                       -C ${guixPkg}/channels.scm \
-                      -- shell guix "$1" \
-                      -L ${guixPkg}/guix-modules \
-                      "''${@:2}"
+                      -- "''${@:1}"
                   '';
                 in ''
                   echo ${text}

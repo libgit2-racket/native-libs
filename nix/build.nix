@@ -46,7 +46,7 @@ let
       nameToQq = name: ''("${name}" ${nameToGexp name})'';
       nameToGexp = name:
         if isString maybeRelBase then
-          '',(local-file "${maybeRelBase}/${name}")''
+          '',(local-file "${maybeRelBase}/${name}" #:recursive? #t)''
         else
           "#f";
     in ''

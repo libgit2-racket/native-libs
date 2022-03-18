@@ -138,7 +138,7 @@
     (arguments
      (list
       #:modules
-      '((guix build gnu-build-system)
+      `((guix build gnu-build-system)
         (guix build utils)
         (ice-9 match))
       #:phases
@@ -196,8 +196,7 @@
                            "$ORIGIN"
                            lib-file-name))
                   ("dylib"
-                   (let ((patch-dylib #$patch-dylib-proc-gexp))
-                     (patch-dylib #:lib-file-name lib-file-name)))))))
+                   (patch-dylib #:lib-file-name lib-file-name))))))
           (replace 'install
             (lambda args
               (copy-recursively "." #$output))))
@@ -208,39 +207,48 @@
     (license
      (list license:asl2.0 license:expat license:gpl2))))
 
-(define-public patch-dylib-proc-gexp
-  #~(lambda* (#:key native-inputs lib-file-name)
-      ;; patch id
-      (invoke "install_name_tool" "-id" lib-file-name lib-file-name)
-      ;; patch libiconv
-      (define dylibs-used
-        (let* ((port (open-pipe* OPEN_READ
-                                 "llvm-objdump"
-                                 "--macho"
-                                 "--dylibs-used"
-                                 lib-file-name))
-               (str (get-string-all port)))
-          (close-pipe port)
-          str))
-      (define nix-libiconv
-        ;; FIXME: Why doesn't guile like this regexp?
-        (let* ((px "(?<=\\s)/nix/store/\\S+/libiconv[\\d\\.]*\\.dylib(?=\\s)")
-               (rkt-expr
-                `(write (regexp-match (pregexp ,px) ,dylibs-used)))
-               (port (open-pipe* OPEN_READ
-                                 "racket"
-                                 "-e"
-                                 (format #f "~s" rkt-expr)))
-               (result (read port)))
-          (close-pipe port)
-          (match result
-            ((str)
-             str))))
-      (invoke "install_name_tool"
-              "-change"
-              nix-libiconv
-              "/usr/lib/libiconv.2.dylib"
-              lib-file-name)))
+(define-public patch-dylib.scm
+  (program-file
+   "patch-dylib.scm"
+   #~(begin
+       (use-modules (ice-9 popen)
+                    (ice-9 match)
+                    (srfi srfi-1)
+                    (guix build utils))
+       (define lib-file-name
+         (last (program-arguments)))
+       ;; patch id
+       (invoke "install_name_tool" "-id" lib-file-name lib-file-name)
+       ;; patch libiconv
+       (define dylibs-used
+         (let* ((port (open-pipe* OPEN_READ
+                                  "llvm-objdump"
+                                  "--macho"
+                                  "--dylibs-used"
+                                  lib-file-name))
+                (str (get-string-all port)))
+           (close-pipe port)
+           str))
+       (define nix-libiconv
+         ;; FIXME: Why doesn't guile like this regexp?
+         (let* ((px
+                 "(?<=\\s)/nix/store/\\S+/libiconv[\\d\\.]*\\.dylib(?=\\s)")
+                (rkt-expr
+                 `(write (regexp-match (pregexp ,px) ,dylibs-used)))
+                (port (open-pipe* OPEN_READ
+                                  "racket"
+                                  "-e"
+                                  (format #f "~s" rkt-expr)))
+                (result (read port)))
+           (close-pipe port)
+           (match result
+             ((str)
+              str))))
+       (invoke "install_name_tool"
+               "-change"
+               nix-libiconv
+               "/usr/lib/libiconv.2.dylib"
+               lib-file-name))))
 
 (define-public platforms-packed
   (filter-map (match-lambda
@@ -252,8 +260,10 @@
                                                     extracted))))
               platforms-extracted))
 
-(define-public union
+(define-public omnibus
   (file-union
    "racket-native-libgit2-pkgs-bundle"
    platforms-packed))
-union
+omnibus
+
+patch-dylib.scm

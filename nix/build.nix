@@ -40,6 +40,24 @@ let
     builtins.concatStringsSep ""
     (nixpkgs.lib.attrsets.mapAttrsToList nixToSchemeDef attrs);
 
+  mkAppleScmForPlatforms = names: maybeRelBase:
+    with builtins;
+    let
+      nameToQq = name: ''("${name}" ${nameToGexp name})'';
+      nameToGexp = name:
+        if isString maybeRelBase then
+          '',(local-file "${maybeRelBase}/#{name}")''
+        else
+          "#f";
+    in ''
+      (define-module (apple)
+        #:use-module (guix gexp)
+        #:export (apple-platforms))
+
+      (define apple-platforms
+        `(${concatStringsSep "\n    " (map nameToQq names)})))
+    '';
+
   fromNixScm = let
     fromVersion = {
       pkg-version = rkt.pkgVersion;
@@ -70,21 +88,26 @@ let
   '';
 
   mkPackagesForBuildPlatform = pkgs: darwinHosts:
-    rec {
+    let
+      mkAppleScm =
+        mkAppleScmForPlatforms (nixpkgs.lib.catAttrs "name" darwinHosts);
+    in rec {
       apple = pkgs.symlinkJoin {
         name = mkNixPkgName "apple-bundle";
         paths = nixpkgs.lib.attrsets.catAttrs "extracted" darwinHosts;
       };
 
       guixSansApple = pkgs.runCommand (mkNixPkgName "guix-sans-apple") {
-        passAsFile = [ "fromNixScm" ];
+        passAsFile = [ "fromNixScm" "appleScm" ];
         inherit fromNixScm;
+        appleScm = mkAppleScm false;
       } ''
         mkdir -p $out
         cd $out
         cp -r ${self}/guix/* .
         cp ${self}/channels.scm ${self}/LICENSE* .
         cp $fromNixScmPath from-nix.scm
+        cp $appleScmPath apple.scm
       '';
     } // (builtins.listToAttrs (builtins.concatMap
       ({ name, built, extracted }: [

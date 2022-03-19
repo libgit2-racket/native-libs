@@ -20,16 +20,15 @@ This is the Racket package @tt[pkg-name], which contains the
 for @tt[arch+os].
 
 
-@make-provenance-section[#:arch+os arch+os]
-
-
 @make-license-section[
  #:see @list{
   the
   @rel-link{COPYING} and @rel-link{README-libgit2.md} files
-  for further details. The @secref{Provenance} section of this
-  file explains how to get the corresponding source for the
-  compiled version of libgit2 distributed in this package.
+  for further details.
+
+  The @secref{Provenance} section of this file explains how
+  to get the corresponding source for the compiled version of
+  libgit2 distributed in this package.
 
   (Note that @rel-link{AUTHORS} and similar files in this
   repository are drawn from upstream libgit2, but the libgit2
@@ -37,3 +36,6 @@ for @tt[arch+os].
   way. (I am, however, grateful for advice some of them have
   given.))
   }]
+
+
+@make-provenance-section[#:arch+os arch+os]

@@ -6,6 +6,12 @@ let
   inherit (import ./lib.nix { inherit (nixpkgs) lib; })
     mapToAttrs concatAttrsSuffixed;
 
+  writeProvenance = pkgs: dir: ''
+    mkdir -p ${dir}
+    echo ${pkgs.buildPlatform.config} > ${dir}/built-on.txt
+    echo Nix > ${dir}/built-by.txt
+  '';
+
 in {
   mkExtractedDarwin = _: pkgs: rec {
     name = "${pkgs.hostPlatform.qemuArch}-macosx";
@@ -21,8 +27,7 @@ in {
         mkdir -p $out/${name}/provenance
         cd $out/${name}
         cp ${built}/lib/libgit2.${rkt.soVersion}.dylib .
-        echo ${pkgs.buildPlatform.config} > provenance/built-on.txt
-        echo Nix > provenance/built-by.txt
+        ${writeProvenance pkgs "provenance"}
       '';
     };
   };
@@ -49,6 +54,7 @@ in {
         cp $fromNixScmPath from-nix.scm
         chmod +w aux-files
         cp ${self}/LICENSE* ${self}/flake.lock ./aux-files/
+        ${writeProvenance pkgs "aux-files/nix-provenance"}
         chmod +w extracted
         cp $appleScmPath extracted/apple.scm
       '';

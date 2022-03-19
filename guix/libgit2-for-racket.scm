@@ -148,7 +148,7 @@
                                      (('@ . pairs)
                                       `(@ (cfg-flags-windows
                                            . ,cfg-flags-windows-jsexpr)
-                                        ,@pairs)))
+                                          ,@pairs)))
                                    <>)))
                   (setenv "RKT_NOT_A_DRILL" "1")))
               (add-after 'set-json-args 'mk-info-rkt
@@ -165,6 +165,21 @@
                           (string-append #$local-scripts
                                          "/"
                                          (getenv "README_SCRBL")))))
+              (add-after 'set-json-args 'write-self-rev
+                (lambda args
+                  (invoke
+                   "racket"
+                   "-e"
+                   (format
+                    #f "~s"
+                    '(begin
+                       (require (file #$(file-append local-scripts
+                                                     "/args.rkt")))
+                       (with-output-to-file "provenance/self.rev.txt"
+                         (λ ()
+                           (displayln
+                            (or self.rev
+                                (++ "DIRTY-" self.lastModifiedDate))))))))))
               (add-after 'set-json-args 'write-metadata-rktd
                 ;; it could be metadata.json, but neither
                 ;; Racket nor Guix has a pretty-printer
@@ -185,7 +200,7 @@
      (synopsis name)
      (description name))))
 
-;#$(write-build-provenance)
+(local-file "aux-files/nix-provenance" #:recursive? #t)
 
 (define* (suffix->racket-pkg-libgit2 suffix base)
   (package

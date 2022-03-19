@@ -15,7 +15,6 @@
   #:use-module ((gnu packages version-control)
                 #:select ((libgit2 . super:libgit2)))
   #:export (non-apple-platforms-extracted
-            write-build-provenance
             libgit2))
 
 ;; The purpose of this module is to produce "extracted"
@@ -33,7 +32,7 @@
                        (and (not (equal? guix-system (%current-system)))
                             guix-system)))
       (built->extracted-gexp racket-platform
-       (package-with-old-stable-libc libgit2))))))
+                             (package-with-old-stable-libc libgit2))))))
 
 (define non-apple-platforms-extracted
   (map (match-lambda
@@ -100,15 +99,11 @@
          (copy-file (string-append #$lg2 "/" built-lib-path)
                     (string-append #$output "/" lib-file-name))
          (with-directory-excursion #$output
-           #$(write-build-provenance))))))
-
-(define (write-build-provenance)
-  #~(begin
-      (mkdir-p "provenance")
-      (with-directory-excursion "provenance"
-        (for-each (lambda (file content)
-                    (with-output-to-file file
-                      (lambda ()
-                        (format #t "~a\n" content))))
-                  `("built-by.txt" "built-on.txt")
-                  `("Guix"         #$(%current-system))))))
+           (mkdir-p "provenance")
+           (with-directory-excursion "provenance"
+             (for-each (lambda (file content)
+                         (with-output-to-file file
+                           (lambda ()
+                             (format #t "~a\n" content))))
+                       `("built-by.txt" "built-on.txt")
+                       `("Guix"         #$(%current-system)))))))))

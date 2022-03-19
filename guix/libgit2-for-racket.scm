@@ -38,8 +38,9 @@
     (version pkg-version)
     (source #f)
     (native-inputs
-     (map (cut apply make-platform-package <>)
-          (filter cdr all-platforms-extracted)))
+     (cons libgit2-native-libs
+           (map (cut apply make-platform-package <>)
+                (filter cdr all-platforms-extracted))))
     (build-system copy-build-system)
     (arguments
      (list
@@ -95,6 +96,19 @@
                                          (getenv "LIB_FILE_NAME"))))))))))
      (synopsis "TODO")
      (description "TODO"))))
+
+(define (make-branch-name suffix)
+  (string-append breaking-change-label
+                 (match breaking-change-label
+                   ("" "")
+                   (_ "-"))
+                 suffix))
+(define (make-pkg-name suffix)
+  (string-append "libgit2-" (make-branch-name suffix)))
+(define (make-home-page suffix)
+  (string-append "https://pkgd.racket-lang.org/pkgn/package/"
+                 (make-pkg-name suffix)))
+     
 
 
 (define racket-pkg-libgit2-abstract
@@ -200,8 +214,6 @@
      (synopsis name)
      (description name))))
 
-(local-file "aux-files/nix-provenance" #:recursive? #t)
-
 (define* (suffix->racket-pkg-libgit2 suffix base)
   (package
     (inherit base)
@@ -217,6 +229,34 @@
                 (not (memq k '(hidden? rkt-pkg-suffix)))))
              (package-properties base)))
     (home-page (make-home-page suffix))))
+
+
+(define-public libgit2-native-libs
+  (suffix->racket-pkg-libgit2
+   "native-libs"
+   (package
+     (inherit racket-pkg-libgit2-abstract)
+     (native-inputs
+      (modify-inputs
+       (package-native-inputs racket-pkg-libgit2-abstract)
+       (prepend
+        (file-union
+         (string-append "racket-pkg" (make-pkg-name "native-libs")
+                        "-" pkg-version)
+         `(("rkt-pkg-skel/provenance"
+            ,(local-file "aux-files/nix-provenance" #:recursive? #t)))))))
+     (arguments
+      (substitute-keyword-arguments
+          (package-arguments racket-pkg-libgit2-abstract)
+        ((#:phases std-phases)
+         #~(modify-phases #$std-phases
+             (add-after 'unpack 'set-meta-sexpr-args
+               (lambda args
+                 (setenv "README_SCRBL" "meta-readme.scrbl")
+                 (setenv "RKT_SEXPR_ARGS"
+                         (format #f "~s" '#$all-platform-names))))))))
+     (synopsis "TODO")
+     (description "TODO"))))
 
 (define abstract-platform-package
   (package
@@ -303,18 +343,6 @@
     (description "This is a bundle of files like @code{COPYING} and
 @code{git.git-authors} that have been extracted from the libgit2
 origin and should be installed into Racket packages.")))
-
-(define (make-branch-name suffix)
-  (string-append breaking-change-label
-                 (match breaking-change-label
-                   ("" "")
-                   (_ "-"))
-                 suffix))
-(define (make-pkg-name suffix)
-  (string-append "libgit2-" (make-branch-name suffix)))
-(define (make-home-page suffix)
-  (string-append "https://pkgd.racket-lang.org/pkgn/package/"
-                 (make-pkg-name suffix)))
 
 
 (define-public patch-dylib.scm

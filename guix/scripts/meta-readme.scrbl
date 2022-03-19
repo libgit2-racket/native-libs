@@ -4,8 +4,14 @@
 @title{@tt[pkg-name]}
 
 @(require "doc-utils.rkt"
+          "args.rkt"
+          racket/string
           racket/match)
 
+@(match-sexpr-args (and (list (? non-empty-string?) ...)
+                        (app (λ (lst) (sort lst arch+os<?))
+                             platforms))
+                   '("ppc32-solaris" "i386-linux" "x86_64-freebsd" "aarch64-freebsd"))
 @(define pkg-name
    (make-pkg-name* "native-libs"))
 

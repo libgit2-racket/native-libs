@@ -32,8 +32,8 @@ in {
     in (concatAttrsSuffixed applePlatformsExtracted) // rec {
       apple = pkgs.symlinkJoin {
         name = mkNixPkgName "extracted-apple-bundle";
-        paths =
-          nixpkgs.lib.attrsets.catAttrs "extracted" applePlatformsExtracted;
+        paths = nixpkgs.lib.mapAttrsToList (_: builtins.getAttr "extracted")
+          applePlatformsExtracted;
       };
 
       guix-sans-apple = pkgs.runCommand (mkNixPkgName "guix-sans-apple") {
@@ -55,7 +55,7 @@ in {
 
       guix-with-apple = let
         applePlatformsExtractedPaths =
-          builtins.mapAttrs (name: _: "extracted/extracted-${name}")
+          builtins.mapAttrs (name: _: "apple/extracted-${name}")
           applePlatformsExtracted;
       in pkgs.runCommand (mkNixPkgName "guix-with-apple") {
         passAsFile = [ "appleScm" ];
@@ -65,9 +65,11 @@ in {
         chmod +w $out/guix-modules
         cd $out/guix-modules
         chmod -R +w extracted
-        rm extracted/apple.scm
-        cp $appleScmPath extracted/apple.scm
-        ${let cp = from: to: "cp -rL ${from} ${to}";
+        cd extracted
+        rm apple.scm
+        cp $appleScmPath apple.scm
+        mkdir apple
+        ${let cp = from: to: "cp -rL ${apple}/${from} ${to}";
         in builtins.concatStringsSep "\n"
         (nixpkgs.lib.attrsets.mapAttrsToList cp applePlatformsExtractedPaths)}
       '';

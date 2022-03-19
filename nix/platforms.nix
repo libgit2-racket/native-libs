@@ -17,16 +17,21 @@ let
 
   inherit (import ./lib.nix { inherit (nixpkgs) lib; }) mapToAttrs;
 
-  filterToAttrs = proc:
+  filterToAttrs = { choose, name }:
     mapToAttrs (pkgs: {
-      name = pkgs.buildPlatform.system;
+      name = name pkgs;
       value = pkgs;
-    }) (filter proc allPlatforms);
+    }) (filter choose allPlatforms);
 in {
 
-  supportedBuildPlatforms =
-    filterToAttrs (pkgs: pkgs.buildPlatform == pkgs.hostPlatform);
+  supportedBuildPlatforms = filterToAttrs {
+    choose = pkgs: pkgs.buildPlatform == pkgs.hostPlatform;
+    name = pkgs: pkgs.buildPlatform.system;
+  };
 
-  darwinHostPlatforms = filterToAttrs (pkgs: pkgs.hostPlatform.isDarwin);
+  darwinHostPlatforms = filterToAttrs {
+    choose = pkgs: pkgs.hostPlatform.isDarwin;
+    name = pkgs: pkgs.hostPlatform.system;
+  };
 
 }

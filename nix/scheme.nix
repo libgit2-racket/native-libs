@@ -40,7 +40,8 @@ let
       libgit2-commit = rkt.libgit2.src.rev;
       libgit2-url = rkt.libgit2.src.url;
     };
-    flags = {
+    flags = let flags = import ./flags.nix rkt;
+    in {
       cfg-flags-common = flags.common;
       cfg-flags-unix = flags.unix;
     };
@@ -85,7 +86,7 @@ in {
 
   mkAppleScm = applePlatformsExtractedPaths:
     let
-      toQq = name: relPath:  ''("${name}" ${toGexp name relPath})'';
+      toQq = name: relPath: ''("${name}" ${toGexp name relPath})'';
       toGexp = name: relPath:
         if isString relPath then
           '',(local-file "${relPath}" #:recursive? #t)''
@@ -97,6 +98,9 @@ in {
         #:export (apple-platforms-extracted))
 
       (define apple-platforms-extracted
-        `(${concatStringsSep "\n    " (map toQq names)}))
+        `(${
+          concatStringsSep "\n    "
+          (mapAttrsToList toQq applePlatformsExtractedPaths)
+        }))
     '';
 }

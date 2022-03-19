@@ -2,12 +2,14 @@
   #:use-module (from-nix)
   #:use-module (extracted apple)
   #:use-module (extracted non-apple)
+  #:use-module (platforms)
   #:use-module (cctools)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   #:use-module (guix utils)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system trivial)
+  #:use-module (guix build json)
   #:use-module (guix gexp)
   #:use-module (guix packages)
   #:use-module ((guix licenses) #:prefix license:)
@@ -47,9 +49,15 @@
       `((guix build copy-build-system)
         (guix build utils)
         (guix build union)
+        (srfi srfi-26)
         (ice-9 match))
       #:phases
       #~(modify-phases %standard-phases
+          (delete 'patch-shebangs)
+          (delete 'strip)
+          (delete 'make-dynamic-linker-cache)
+          (delete 'validate-runpath)
+          (delete 'install-license-files)
           (replace 'unpack
             (lambda* (#:key native-inputs inputs #:allow-other-keys)
               (union-build
@@ -75,6 +83,7 @@
 
 
 (define racket-pkg-libgit2-abstract
+  ;; parent of both abstract-platform-packacge and libgit2-native-libs
   (hidden-package
    (package
      (inherit racket-libgit2-omnibus)
@@ -86,34 +95,58 @@
       (list local-provenance-files
             racket))
      (arguments
-      (list
-       ;; wrapper will add install-plan
-       #:imported-modules
-       `((guix build union)
-         ,@%copy-build-system-modules)
-       #:modules
-       `((guix build copy-build-system)
-         (guix build utils)
-         (guix build union)
-         (ice-9 match))
-       #:validate-runpath? #f
-       #:phases
-       #~(modify-phases %standard-phases
-           (delete 'patch-shebangs)
-           (delete 'strip)
-           (delete 'make-dynamic-linker-cache)
-           (delete 'install-license-files)
-           (replace 'unpack
-             (lambda* (#:key native-inputs inputs #:allow-other-keys)
-               (union-build
-                "build"
-                (search-path-as-list '("rkt-pkg-skel")
-                                     (map cdr (or native-inputs inputs)))
-                #:create-all-directories? #f)
-               (chdir "build"))))))
+      (strip-keyword-arguments
+       '(#:install-plan) ;; wrapper will add it
+       (substitute-keyword-arguments (package-arguments racket-libgit2-omnibus)
+         ((#:phases std-phases)
+          #~(modify-phases #$std-phases
+              (replace 'unpack
+                (lambda* (#:key native-inputs inputs #:allow-other-keys)
+                  (union-build
+                   "build"
+                   (search-path-as-list '("rkt-pkg-skel")
+                                        (map cdr (or native-inputs inputs)))
+                   #:create-all-directories? #t)
+                  (chdir "build")))
+              (add-after 'unpack 'unpack-provenance
+                (lambda* (#:key source #:allow-other-keys)
+                  (define src
+                    (and=> source (cut string-append <> "/provenance")))
+                  (when (and src (directory-exists? src))
+                    (copy-recursively src "provenance"))))
+              (add-before 'install 'set-json-args
+                (lambda args
+                  (setenv "RKT_JSON_ARGS"
+                          #$(call-with-output-string
+                              (cut write-json
+                                   (match all-from-nix-jsexpr
+                                     (('@ . pairs)
+                                      `(@ (cfg-flags-windows
+                                           . ,cfg-flags-windows-jsexpr)
+                                        ,@pairs)))
+                                   <>)))
+                  (setenv "RKT_NOT_A_DRILL" "1")))
+              (add-after 'set-json-args 'write-metadata-rktd
+                ;; it could be metadata.json, but neither
+                ;; Racket nor Guix has a pretty-printer
+                (lambda args
+                  (invoke
+                   "racket"
+                   "-e"
+                   #$(format
+                      #f "~s" '(begin
+                                 (require json)
+                                 (with-output-to-file
+                                     "provenance/metadata.rktd"
+                                   (λ ()
+                                     (pretty-write
+                                      (string->jsexpr
+                                       (getenv "RKT_JSON_ARGS")))))))))))))))
      (home-page name)
      (synopsis name)
      (description name))))
+
+;#$(write-build-provenance)
 
 (define* (suffix->racket-pkg-libgit2 suffix base)
   (package

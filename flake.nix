@@ -6,7 +6,7 @@
       type = "github";
       owner = "NixOs";
       repo = "nixpkgs";
-      # NOTE: the nixpkgs version used here determines MACOSX_VERSION_MIN
+      # NOTE: the nixpkgs branch used here determines MACOSX_VERSION_MIN
       ref = "nixos-21.11";
     };
   };
@@ -17,8 +17,6 @@
 
       rkt = import "${self}/version.nix";
       build = import "${self}/nix/build.nix" { inherit self nixpkgs rkt; };
-      inherit (import "${self}/nix/lib.nix" { inherit (nixpkgs) lib; })
-        mapToAttrs concatAttrsSuffixed;
       inherit (import "${self}/nix/platforms.nix" { inherit nixpkgs; })
         supportedBuildPlatforms darwinHostPlatforms;
 

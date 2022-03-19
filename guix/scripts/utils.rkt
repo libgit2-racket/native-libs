@@ -49,8 +49,8 @@
 (define default-json-args
   #hasheq([pkg-version . "0.0.0.999"]
           [breaking-change-label . "unstable"]
-          [system-for-build . "x86_64-linux"]
-          [platforms . ("i386-win32" "x86_64-linux")]
+          ;[system-for-build . "x86_64-linux"]
+          ;[platforms . ("i386-win32" "x86_64-linux")]
           [self-source-info
            . #hasheq([lastModifiedDate . "19181111110000"]
                      [narHash . "sha256-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="])]

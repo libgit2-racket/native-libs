@@ -15,6 +15,7 @@
   #:use-module ((gnu packages version-control)
                 #:select ((libgit2 . super:libgit2)))
   #:export (non-apple-platforms-extracted
+            write-build-provenance
             libgit2))
 
 ;; The purpose of this module is to produce "extracted"
@@ -96,8 +97,18 @@
            (if windows?
                "bin/libgit2.dll"
                (string-append "lib/" lib-file-name)))
-         (with-output-to-file (string-append #$output "/built-on.txt")
-           (lambda ()
-             (format #t "~a\n" #$(%current-system))))
          (copy-file (string-append #$lg2 "/" built-lib-path)
-                    (string-append #$output "/" lib-file-name))))))
+                    (string-append #$output "/" lib-file-name))
+         (with-directory-excursion #$output
+           #$(write-build-provenance))))))
+
+(define (write-build-provenance)
+  #~(begin
+      (mkdir-p "provenance")
+      (with-directory-excursion "provenance"
+        (for-each (lambda (file content)
+                    (with-output-to-file file
+                      (lambda ()
+                        (format #t "~a\n" content))))
+                  `("built-by.txt" "built-on.txt")
+                  `("Guix"         #$(%current-system))))))

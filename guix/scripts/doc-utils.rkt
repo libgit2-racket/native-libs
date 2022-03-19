@@ -50,34 +50,32 @@
        #;lib-filename
        pkg-version
        breaking-change-label
-       system-for-build
-       platforms
+       so-version
+       deprecate-hard
+       cfg-flags-common
+       cfg-flags-unix
+       libgit2-commit
+       libgit2-sha256
+       libgit2-url
+       libgit2-version
+       #;platforms
        [#:_ self-source-info
         (H-T #:prefix self.
+             rev ;; (or/c string? #f)
              [#:_ lastModifiedDate
               (app beautify-lastModifiedDate
                    self.lastModifiedDate)]
-             narHash
-             [#:? rev #f])]
+             narHash)]
        [#:_ nixpkgs-source+lock-info
         (H-T #:prefix nixpkgs.
+             rev ;; string?
              [#:_ lastModifiedDate
               (app beautify-lastModifiedDate
                    nixpkgs.lastModifiedDate)]
              narHash
-             rev
-             ;; .locked
              owner
              repo
-             ;; .original
-             ref)]
-       [#:_ libgit2-info
-        (H-T #:prefix libgit2.
-             version
-             sha256
-             rev
-             owner
-             repo)])
+             ref)])
   json-args/defaults)
 
 (define canonical-repo

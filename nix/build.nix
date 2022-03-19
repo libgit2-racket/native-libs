@@ -24,12 +24,18 @@ let
 
   nixToSchemeExpr = value:
     with builtins;
-    if isBool value then
+    let wrapList = strs: "(list ${concatStringsSep "\n        " strs})";
+    in if isBool value then
       (if value then "#t" else "#f")
     else if isList value then
-      "(list ${concatStringsSep "\n        " (map nixToSchemeExpr value)})"
+      wrapList (map nixToSchemeExpr value)
+    else if isString value then
+      ''"${value}"''
     else
-      assert isString value; ''"${value}"'';
+      assert isAttrs value;
+      wrapList (nixpkgs.lib.attrsets.mapAttrsToList
+        (lhs: rhs: "(cons ${nixToSchemeExpr lhs} ${nixToSchemeExpr rhs})")
+        value);
 
   nixToSchemeDef = name: value: ''
     (define ${name}
@@ -74,17 +80,41 @@ let
       cfg-flags-common = flags.common;
       cfg-flags-unix = flags.unix;
     };
+    mkSourceInfoCommon = { lastModifiedDate, narHash, rev ? false, ... }: {
+      inherit lastModifiedDate narHash rev;
+    };
+    lock-info = (nixpkgs.lib.importJSON ../flake.lock).nodes.nixpkgs;
+    nixpkgsAllInfo =
+      (lock-info.original // lock-info.locked // nixpkgs.sourceInfo);
+    fromFlake = {
+      "nixpkgs-source+lock-info" = (mkSourceInfoCommon nixpkgsAllInfo) // {
+        inherit (nixpkgsAllInfo) owner repo ref;
+      };
+      self-source-info = mkSourceInfoCommon self.sourceInfo;
+    };
+    fromAll = fromVersion // fromFlags // fromFlake;
   in with builtins; ''
     (define-module (from-nix)
-      #:export (${
-        let sep = "\n            ";
-        in concatStringsSep sep (concatMap attrNames [ fromVersion fromFlags ])
-      }))
+      #:export (${concatStringsSep "\n            " (attrNames fromAll)}
+                all-from-nix-jsexpr))
 
     ;; from version.nix
     ${nixToSchemeDefMulti fromVersion}
     ;; from nix/flags.nix
     ${nixToSchemeDefMulti fromFlags}
+    ;; from flake.lock and flake sourceInfo metadata
+    ${nixToSchemeDefMulti fromFlake}
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; for json
+    (define all-from-nix-jsexpr
+      `(@ ${
+        concatStringsSep "\n      " (nixpkgs.lib.attrsets.mapAttrsToList
+          (lhs: rhs:
+            if isAttrs rhs then
+              "(${nixToSchemeExpr lhs} @ ,@${lhs})"
+            else
+              "(${nixToSchemeExpr lhs} . ,${lhs})") fromAll)
+      }))
   '';
 
   mkPackagesForBuildPlatform = pkgs: darwinHosts:
@@ -107,7 +137,7 @@ let
         cd $out/guix-modules
         cp -r ${self}/guix/* .
         chmod +w aux-files
-        cp ${self}/LICENSE* ./aux-files/
+        cp ${self}/LICENSE* ${self}/flake.lock ./aux-files/
         cp $fromNixScmPath from-nix.scm
         cp $appleScmPath apple.scm
       '';

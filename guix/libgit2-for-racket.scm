@@ -125,7 +125,9 @@
                  suffix))
 (define (make-pkg-name suffix)
   (string-append "libgit2-" (make-branch-name suffix)))
-
+(define (make-home-page suffix)
+  (string-append "https://pkgd.racket-lang.org/pkgn/package/"
+                 (make-pkg-name suffix)))
 
 (define (make-libgit2-racket-package racket-platform extracted)
   (package
@@ -202,7 +204,7 @@
             (lambda args
               (copy-recursively "." #$output))))
       #:validate-runpath? #f))
-    (home-page "localhost")
+    (home-page (make-home-page racket-platform))
     (synopsis "TODO")
     (description "TODO")
     (license
@@ -265,6 +267,6 @@
 
 (define-public omnibus
   (file-union
-   "racket-native-libgit2-pkgs-bundle"
+   "libgit2-for-racket-omnibus"
    platforms-packed))
 omnibus

@@ -51,7 +51,7 @@
               (method git-fetch)
               (uri (git-reference
                     (url libgit2-url)
-                    (commit libgit2-commit)))
+                    (commit libgit2-rev)))
               (sha256 (base32 libgit2-sha256))
               (file-name (git-file-name name version))))
     (inputs '())

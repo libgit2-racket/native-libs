@@ -37,7 +37,7 @@ let
       libgit2-version = rkt.libgit2.version;
       libgit2-sha256 = rkt.libgit2.src.sha256;
       # ^ Thankfully, Nix and Guix calculate it the same way!
-      libgit2-commit = rkt.libgit2.src.rev;
+      libgit2-rev = rkt.libgit2.src.rev;
       libgit2-url = rkt.libgit2.src.url;
     };
     flags = let flags = import ./flags.nix rkt;

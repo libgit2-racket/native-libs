@@ -43,7 +43,7 @@ in {
           (builtins.mapAttrs (_: _: false) applePlatformsExtracted);
       } ''
         mkdir -p $out/guix-modules
-        cp ${self}/channels.scm $out
+        cp ${self}/channels.scm ${self}/manifest.scm $out
         cd $out/guix-modules
         cp -r ${self}/guix/* .
         cp $fromNixScmPath from-nix.scm

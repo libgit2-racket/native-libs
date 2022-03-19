@@ -1,31 +1,49 @@
 #lang racket/base
 ;; SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+(module+ test
+  (require "args.rkt"))
 (module+ main
-  (command-line
-   #:once-any
-   [("--meta-pkg")
-    "generate for the meta-package"
-    (match-define (H-T pkg-version
-                       breaking-change-label
-                       platforms)
-      (json-args))
-    (write-info-rkt
-     (meta-pkg-body #:pkg-version pkg-version
-                    #:breaking-change-label breaking-change-label
-                    #:platforms platforms))]
-   [("--platform-pkg")
-    "generate for platform-specific package"
-    (match-define (H-T arch+os
-                       pkg-version
-                       breaking-change-label
-                       lib-filename)
-      (json-args))
-    (write-info-rkt
-     (platform-pkg-body #:arch+os arch+os
-                        #:pkg-version pkg-version
-                        #:breaking-change-label breaking-change-label
-                        #:lib-filename lib-filename))]))
+  (require "args.rkt"
+           racket/cmdline)
+  (let ([explicit-target? #f]
+        [dest #f])
+    (command-line
+     #:once-each
+     [("-o" "--out") info.rkt "write to <info.rkt> (which must not exist)"
+                     (set! dest info.rkt)]
+     #:once-any
+     [("--meta-pkg") "explicitly generate for the meta-package"
+                     (set! explicit-target? 'meta-pkg)]
+     [("--platform-pkg") "explicitly generate for platform-specific package"
+                         (set! explicit-target? 'platform-pkg)]
+     #:args ()
+     (cond
+       [dest
+        (match-sexpr-args (and sexpr-args (not #f))
+                          (match explicit-target?
+                            ['meta-pkg
+                             '("i386-win32" "x86_64-linux")]
+                            ['platform-pkg
+                             #("ppc32-solaris" "my-lib.so.x.y.z")]
+                            [#f
+                             #("ppc32-freebsd" "my-lib-x.y.x.dll")]))
+        (define body
+          (match sexpr-args
+            [(vector arch+os lib-filename)
+             #:when (not (eq? 'meta-pkg explicit-target?))
+             (platform-pkg-body #:arch+os arch+os
+                                #:pkg-version pkg-version
+                                #:breaking-change-label breaking-change-label
+                                #:lib-filename lib-filename)]
+            [(and platforms (list (? string?) ...))
+             #:when (not (eq? 'platform-pkg explicit-target?))
+             (meta-pkg-body #:pkg-version pkg-version
+                            #:breaking-change-label breaking-change-label
+                            #:platforms platforms)]))
+        (with-output-to-file dest
+          (λ ()
+            (write-info-rkt body)))]))))
 
 (module+ test
   (write-info-rkt
@@ -42,9 +60,6 @@
                   #:platforms '("i386-win32" "x86_64-linux"))))
 
 (require racket/match
-         racket/pretty
-         racket/cmdline
-         racket/string
          "utils.rkt"
          syntax/to-string
          (for-syntax racket/base

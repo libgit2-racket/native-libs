@@ -8,75 +8,12 @@
          md-section
          rel-link
          make-provenance-section
-         make-license-section
-         json-args/defaults
-         pkg-version
-         breaking-change-label
-         system-for-build
-         platforms
-         self.lastModifiedDate
-         self.narHash
-         self.rev
-         nixpkgs.lastModifiedDate
-         nixpkgs.narHash
-         nixpkgs.rev
-         nixpkgs.owner
-         nixpkgs.repo
-         nixpkgs.ref
-         libgit2.version
-         libgit2.sha256
-         libgit2.rev
-         libgit2.owner
-         libgit2.repo)
+         make-license-section)
 
 (require "utils.rkt"
+         "args.rkt"
          racket/match
          scribble/base)
-
-(define require-args-env-var-name
-  "RKT_ENFORCE_ARGS")
-
-(define json-args/defaults
-  (cond
-    [(json-args)]
-    [(not (getenv require-args-env-var-name))
-     default-json-args]
-    [else
-     ;; ... error ...
-     #f]))  
-
-(match-define
-  (H-T #;arch+os
-       #;lib-filename
-       pkg-version
-       breaking-change-label
-       so-version
-       deprecate-hard
-       cfg-flags-common
-       cfg-flags-unix
-       libgit2-commit
-       libgit2-sha256
-       libgit2-url
-       libgit2-version
-       #;platforms
-       [#:_ self-source-info
-        (H-T #:prefix self.
-             rev ;; (or/c string? #f)
-             [#:_ lastModifiedDate
-              (app beautify-lastModifiedDate
-                   self.lastModifiedDate)]
-             narHash)]
-       [#:_ nixpkgs-source+lock-info
-        (H-T #:prefix nixpkgs.
-             rev ;; string?
-             [#:_ lastModifiedDate
-              (app beautify-lastModifiedDate
-                   nixpkgs.lastModifiedDate)]
-             narHash
-             owner
-             repo
-             ref)])
-  json-args/defaults)
 
 (define canonical-repo
   "https://github.com/LiberalArtist/native-libgit2-pkgs")

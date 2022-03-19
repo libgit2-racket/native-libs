@@ -4,7 +4,7 @@
   #:use-module (extracted non-apple)
   #:use-module (platforms)
   #:use-module (cctools)
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   #:use-module (guix utils)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
@@ -28,6 +28,9 @@
 
 (define-public all-platform-names
   (map car all-platforms-extracted))
+
+(define local-scripts
+  (local-file "scripts" #:recursive? #t))
 
 (define-public racket-libgit2-omnibus
   (package
@@ -78,6 +81,18 @@
    (package
      (inherit abstract-platform-package)
      (source extracted)
+     (arguments
+      (substitute-keyword-arguments
+          (package-arguments abstract-platform-package)
+        ((#:phases std-phases)
+         #~(modify-phases #$std-phases
+             (add-after 'patch-shared-library 'set-platform-sexpr-args
+               (lambda args
+                 (setenv "README_SCRBL" "platform-readme.scrbl")
+                 (setenv "RKT_SEXPR_ARGS"
+                         (format #f "~s"
+                                 (vector #$racket-platform
+                                         (getenv "LIB_FILE_NAME"))))))))))
      (synopsis "TODO")
      (description "TODO"))))
 
@@ -126,6 +141,21 @@
                                         ,@pairs)))
                                    <>)))
                   (setenv "RKT_NOT_A_DRILL" "1")))
+              (add-after 'set-json-args 'mk-info-rkt
+                (lambda args
+                  (invoke "racket"
+                          #$(file-append local-scripts "/mk-info-rkt.rkt")
+                          "--out" "info.rkt")))
+              #;
+              (add-after 'mk-info-rkt 'readme-scrbl
+                (lambda args
+                  (invoke "scribble"
+                          "--markdown"
+                          "--link-section"
+                          "--dest-name" "README.md"
+                          (string-append #$local-scripts
+"/"
+                                         (getenv "README_SCRBL")))))
               (add-after 'set-json-args 'write-metadata-rktd
                 ;; it could be metadata.json, but neither
                 ;; Racket nor Guix has a pretty-printer
@@ -181,7 +211,7 @@
          (package-arguments racket-pkg-libgit2-abstract)
        ((#:phases std-phases)
         #~(modify-phases #$std-phases
-            (add-before 'install 'copy-shared-library
+            (add-after 'unpack 'copy-shared-library
               (lambda* (#:key source native-inputs #:allow-other-keys)
                 (define dll-file?
                   (file-name-predicate "\\.dll$"))

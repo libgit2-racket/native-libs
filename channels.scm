@@ -1,5 +1,6 @@
 ;; -*- mode: scheme -*-
-;; to update this file, run `make channels.scm`
+;; To update this file, run `make update` in the
+;; `build-scripts` branch of the source repository.
 (list (channel
         (name 'guix)
         (url "https://git.savannah.gnu.org/git/guix.git")

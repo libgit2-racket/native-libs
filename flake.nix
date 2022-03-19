@@ -45,6 +45,6 @@
 
       apps = builtins.mapAttrs (_: { apps, ... }: apps) commands;
 
-      defaultApp = builtins.mapAttrs (_: builtins.getAttr "time-machine") apps;
+      defaultApp = builtins.mapAttrs (_: builtins.getAttr "guix-build") apps;
     };
 }

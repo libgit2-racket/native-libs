@@ -47,20 +47,14 @@ let
         '';
       };
     };
-    apps = with packages; {
-      time-machine = {
-        type = "app";
-        program = "${cmd-time-machine}/bin/time-machine";
-      };
-      guix-show = {
-        type = "app";
-        program = "${cmd-guix-show}/bin/guix-show";
-      };
-      guix-build = {
-        type = "app";
-        program = "${cmd-guix-build}/bin/guix-build";
-      };
-    };
+    apps = nixpkgs.lib.attrsets.mapAttrs' (_:
+      { name, ... }@cmd: {
+        inherit name;
+        value = {
+          type = "app";
+          program = "${cmd}/bin/${name}";
+        };
+      }) packages;
   };
 
   inherit (import ./lib.nix { inherit (nixpkgs) lib; }) concatAttrsSuffixed;

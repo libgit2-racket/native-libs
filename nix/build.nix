@@ -46,7 +46,7 @@ let
     builtins.concatStringsSep ""
     (nixpkgs.lib.attrsets.mapAttrsToList nixToSchemeDef attrs);
 
-  mkAppleScmForPlatforms = names: maybeRelBase:
+  mkExtractedAppleScmForPlatforms = names: maybeRelBase:
     with builtins;
     let
       nameToQq = name: ''("${name}" ${nameToGexp name})'';
@@ -56,11 +56,11 @@ let
         else
           "#f";
     in ''
-      (define-module (apple)
+      (define-module (extracted apple)
         #:use-module (guix gexp)
-        #:export (apple-platforms))
+        #:export (apple-platforms-extracted))
 
-      (define apple-platforms
+      (define apple-platforms-extracted
         `(${concatStringsSep "\n    " (map nameToQq names)}))
     '';
 
@@ -119,11 +119,11 @@ let
 
   mkPackagesForBuildPlatform = pkgs: darwinHosts:
     let
-      mkAppleScm =
-        mkAppleScmForPlatforms (nixpkgs.lib.catAttrs "name" darwinHosts);
+      mkAppleScm = mkExtractedAppleScmForPlatforms
+        (nixpkgs.lib.catAttrs "name" darwinHosts);
     in rec {
       apple = pkgs.symlinkJoin {
-        name = mkNixPkgName "apple-bundle";
+        name = mkNixPkgName "extracted-apple-bundle";
         paths = nixpkgs.lib.attrsets.catAttrs "extracted" darwinHosts;
       };
 
@@ -136,23 +136,25 @@ let
         cp ${self}/channels.scm $out
         cd $out/guix-modules
         cp -r ${self}/guix/* .
+        cp $fromNixScmPath from-nix.scm
         chmod +w aux-files
         cp ${self}/LICENSE* ${self}/flake.lock ./aux-files/
-        cp $fromNixScmPath from-nix.scm
-        cp $appleScmPath apple.scm
+        chmod +w extracted
+        cp $appleScmPath extracted/apple.scm
       '';
 
-      guix-with-apple = let appleExtractedDir = "apple-extracted";
+      guix-with-apple = let appleRelBase = "extracted-apple";
       in pkgs.runCommand (mkNixPkgName "guix-plus-apple") {
         passAsFile = [ "appleScm" ];
-        appleScm = mkAppleScm appleExtractedDir;
+        appleScm = mkAppleScm appleRelBase;
       } ''
         cp -rL ${guix-sans-apple}/ $out
         chmod +w $out/guix-modules
         cd $out/guix-modules
-        rm apple.scm
-        cp $appleScmPath apple.scm
-        cp -rL ${apple} ${appleExtractedDir}
+        chmod -R +w extracted
+        rm extracted/apple.scm
+        cp $appleScmPath extracted/apple.scm
+        cp -rL ${apple} extracted/${appleRelBase}
       '';
     } // (builtins.listToAttrs (builtins.concatMap
       ({ name, built, extracted }: [

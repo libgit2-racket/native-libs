@@ -1,136 +1,46 @@
 { self, nixpkgs, rkt }:
 let
 
-  flags = (import ./flags.nix rkt);
+  flags = import ./flags.nix rkt;
+  scheme = import ./scheme.nix { inherit self nixpkgs rkt; };
+  inherit (import ./lib.nix { inherit (nixpkgs) lib; })
+    mapToAttrs concatAttrsSuffixed;
 
-  mkDarwinHost = pkgs: rec {
+in {
+  mkExtractedDarwin = _: pkgs: rec {
     name = "${pkgs.hostPlatform.qemuArch}-macosx";
-    built = pkgs.libgit2.overrideAttrs (oldAttrs: {
-      version = rkt.libgit2.version;
-      src = pkgs.fetchgit rkt.libgit2.src;
-      patches = [ ];
-      buildInputs = [ ];
-      cmakeFlags = flags.common ++ flags.unix;
-    });
-    extracted = pkgs.runCommand "extracted-${name}" { } ''
-      mkdir -p $out/${name}
-      cd $out/${name}
-      cp ${built}/lib/libgit2.${rkt.soVersion}.dylib .
-      echo ${pkgs.buildPlatform.config} > built-on.txt
-    '';
+    value = rec {
+      built = pkgs.libgit2.overrideAttrs (oldAttrs: {
+        version = rkt.libgit2.version;
+        src = pkgs.fetchgit rkt.libgit2.src;
+        patches = [ ];
+        buildInputs = [ ];
+        cmakeFlags = flags.common ++ flags.unix;
+      });
+      extracted = pkgs.runCommand "extracted-${name}-${rkt.pkgVersion}" { } ''
+        mkdir -p $out/${name}/provenance
+        cd $out/${name}
+        cp ${built}/lib/libgit2.${rkt.soVersion}.dylib .
+        echo ${pkgs.buildPlatform.config} > provenance/built-on.txt
+        echo Nix > provenance/built-by.txt
+      '';
+    };
   };
 
-  mkNixPkgName = name: "racket-libgit2-nix-${name}-${rkt.pkgVersion}";
-
-  nixToSchemeExpr = value:
-    with builtins;
-    let wrapList = strs: "(list ${concatStringsSep "\n        " strs})";
-    in if isBool value then
-      (if value then "#t" else "#f")
-    else if isList value then
-      wrapList (map nixToSchemeExpr value)
-    else if isString value then
-      ''"${value}"''
-    else
-      assert isAttrs value;
-      wrapList (nixpkgs.lib.attrsets.mapAttrsToList
-        (lhs: rhs: "(cons ${nixToSchemeExpr lhs} ${nixToSchemeExpr rhs})")
-        value);
-
-  nixToSchemeDef = name: value: ''
-    (define ${name}
-      ${nixToSchemeExpr value})
-  '';
-
-  nixToSchemeDefMulti = attrs:
-    builtins.concatStringsSep ""
-    (nixpkgs.lib.attrsets.mapAttrsToList nixToSchemeDef attrs);
-
-  mkExtractedAppleScmForPlatforms = names: maybeRelBase:
-    with builtins;
-    let
-      nameToQq = name: ''("${name}" ${nameToGexp name})'';
-      nameToGexp = name:
-        if isString maybeRelBase then
-          '',(local-file "${maybeRelBase}/${name}" #:recursive? #t)''
-        else
-          "#f";
-    in ''
-      (define-module (extracted apple)
-        #:use-module (guix gexp)
-        #:export (apple-platforms-extracted))
-
-      (define apple-platforms-extracted
-        `(${concatStringsSep "\n    " (map nameToQq names)}))
-    '';
-
-  fromNixScm = let
-    fromVersion = {
-      pkg-version = rkt.pkgVersion;
-      breaking-change-label = rkt.breakingChangeLabel;
-      so-version = rkt.soVersion;
-      deprecate-hard = rkt.deprecateHard;
-      libgit2-version = rkt.libgit2.version;
-      libgit2-sha256 = rkt.libgit2.src.sha256;
-      # ^ Thankfully, Nix and Guix calculate it the same way!
-      libgit2-commit = rkt.libgit2.src.rev;
-      libgit2-url = rkt.libgit2.src.url;
-    };
-    fromFlags = {
-      cfg-flags-common = flags.common;
-      cfg-flags-unix = flags.unix;
-    };
-    mkSourceInfoCommon = { lastModifiedDate, narHash, rev ? false, ... }: {
-      inherit lastModifiedDate narHash rev;
-    };
-    lock-info = (nixpkgs.lib.importJSON ../flake.lock).nodes.nixpkgs;
-    nixpkgsAllInfo =
-      (lock-info.original // lock-info.locked // nixpkgs.sourceInfo);
-    fromFlake = {
-      "nixpkgs-source+lock-info" = (mkSourceInfoCommon nixpkgsAllInfo) // {
-        inherit (nixpkgsAllInfo) owner repo ref;
-      };
-      self-source-info = mkSourceInfoCommon self.sourceInfo;
-    };
-    fromAll = fromVersion // fromFlags // fromFlake;
-  in with builtins; ''
-    (define-module (from-nix)
-      #:export (${concatStringsSep "\n            " (attrNames fromAll)}
-                all-from-nix-jsexpr))
-
-    ;; from version.nix
-    ${nixToSchemeDefMulti fromVersion}
-    ;; from nix/flags.nix
-    ${nixToSchemeDefMulti fromFlags}
-    ;; from flake.lock and flake sourceInfo metadata
-    ${nixToSchemeDefMulti fromFlake}
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;; for json
-    (define all-from-nix-jsexpr
-      `(@ ${
-        concatStringsSep "\n      " (nixpkgs.lib.attrsets.mapAttrsToList
-          (lhs: rhs:
-            if isAttrs rhs then
-              "(${nixToSchemeExpr lhs} @ ,@${lhs})"
-            else
-              "(${nixToSchemeExpr lhs} . ,${lhs})") fromAll)
-      }))
-  '';
-
-  mkPackagesForBuildPlatform = pkgs: darwinHosts:
-    let
-      mkAppleScm = mkExtractedAppleScmForPlatforms
-        (nixpkgs.lib.catAttrs "name" darwinHosts);
-    in rec {
+  mkBasePackages = { pkgs, applePlatformsExtracted }:
+    let mkNixPkgName = name: "racket-libgit2-nix-${name}-${rkt.pkgVersion}";
+    in (concatAttrsSuffixed applePlatformsExtracted) // rec {
       apple = pkgs.symlinkJoin {
         name = mkNixPkgName "extracted-apple-bundle";
-        paths = nixpkgs.lib.attrsets.catAttrs "extracted" darwinHosts;
+        paths =
+          nixpkgs.lib.attrsets.catAttrs "extracted" applePlatformsExtracted;
       };
 
       guix-sans-apple = pkgs.runCommand (mkNixPkgName "guix-sans-apple") {
         passAsFile = [ "fromNixScm" "appleScm" ];
-        inherit fromNixScm;
-        appleScm = mkAppleScm false;
+        inherit (scheme) fromNixScm;
+        appleScm = scheme.mkAppleScm
+          (builtins.mapAttrs (_: _: false) applePlatformsExtracted);
       } ''
         mkdir -p $out/guix-modules
         cp ${self}/channels.scm $out
@@ -143,10 +53,13 @@ let
         cp $appleScmPath extracted/apple.scm
       '';
 
-      guix-with-apple = let appleRelBase = "extracted-apple";
-      in pkgs.runCommand (mkNixPkgName "guix-plus-apple") {
+      guix-with-apple = let
+        applePlatformsExtractedPaths =
+          builtins.mapAttrs (name: _: "extracted/extracted-${name}")
+          applePlatformsExtracted;
+      in pkgs.runCommand (mkNixPkgName "guix-with-apple") {
         passAsFile = [ "appleScm" ];
-        appleScm = mkAppleScm appleRelBase;
+        appleScm = scheme.mkAppleScm applePlatformsExtractedPaths;
       } ''
         cp -rL ${guix-sans-apple}/ $out
         chmod +w $out/guix-modules
@@ -154,18 +67,9 @@ let
         chmod -R +w extracted
         rm extracted/apple.scm
         cp $appleScmPath extracted/apple.scm
-        cp -rL ${apple} extracted/${appleRelBase}
+        ${let cp = from: to: "cp -rL ${from} ${to}";
+        in builtins.concatStringsSep "\n"
+        (nixpkgs.lib.attrsets.mapAttrsToList cp applePlatformsExtractedPaths)}
       '';
-    } // (builtins.listToAttrs (builtins.concatMap
-      ({ name, built, extracted }: [
-        {
-          name = "built-${name}";
-          value = built;
-        }
-        {
-          name = "extracted-${name}";
-          value = extracted;
-        }
-      ]) darwinHosts));
-
-in { inherit mkDarwinHost mkPackagesForBuildPlatform; }
+    };
+}

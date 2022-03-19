@@ -15,6 +15,8 @@
          racket/match
          scribble/base)
 
+(define system-for-build 'SYSTEM_FOR_BUILD)
+
 (define canonical-repo
   "https://github.com/LiberalArtist/native-libgit2-pkgs")
 
@@ -58,11 +60,9 @@
       @list{to generate this package, @make-pkg-name*{native-libs}.})
 
  The included libgit2 shared library is version
- @|libgit2.version|, built from the source at
- @url[(++ "https://github.com/"
-          libgit2.owner "/" libgit2.repo
-          "/tree/" libgit2.rev)].
- The Nix sha256 hash of the source is @tt[libgit2.sha256].
+ @|libgit2-version|, built from the source at
+ @url[(++ libgit2-url "/tree/" libgit2-rev)].
+ The Nix sha256 hash of the source is @tt[libgit2-sha256].
 
  The build environment used the
  @hyperlink[(++ nixpkgs-base-url "/tree/" nixpkgs.ref)]{@tt{@|nixpkgs.ref|}}

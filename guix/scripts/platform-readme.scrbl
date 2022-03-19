@@ -4,11 +4,13 @@
 @title{@tt[pkg-name]}
 
 @(require "doc-utils.rkt"
+          "args.rkt"
           racket/match
           (for-syntax racket/base)
           syntax/parse/define)
 
-@(match-define (H-T arch+os lib-filename) json-args/defaults)
+@(match-sexpr-args (vector arch+os lib-filename)
+                   #("ppc32-solaris" "my-lib.so.x.y.z"))
 
 @(define pkg-name
    (make-pkg-name* arch+os))

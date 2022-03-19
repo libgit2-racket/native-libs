@@ -129,6 +129,16 @@
                     (and=> source (cut string-append <> "/provenance")))
                   (when (and src (directory-exists? src))
                     (copy-recursively src "provenance"))))
+              (add-after 'unpack-provenance 'write-pack-provenance
+                (lambda args
+                  (mkdir-p "provenance")
+                  (with-directory-excursion "provenance"
+                    (for-each (lambda (file content)
+                                (with-output-to-file file
+                                  (lambda ()
+                                    (format #t "~a\n" content))))
+                              `("packed-by.txt" "packed-on.txt")
+                              `("Guix"         #$(%current-system))))))
               (add-before 'install 'set-json-args
                 (lambda args
                   (setenv "RKT_JSON_ARGS"
@@ -146,7 +156,6 @@
                   (invoke "racket"
                           #$(file-append local-scripts "/mk-info-rkt.rkt")
                           "--out" "info.rkt")))
-              #;
               (add-after 'mk-info-rkt 'readme-scrbl
                 (lambda args
                   (invoke "scribble"
@@ -154,7 +163,7 @@
                           "--link-section"
                           "--dest-name" "README.md"
                           (string-append #$local-scripts
-"/"
+                                         "/"
                                          (getenv "README_SCRBL")))))
               (add-after 'set-json-args 'write-metadata-rktd
                 ;; it could be metadata.json, but neither

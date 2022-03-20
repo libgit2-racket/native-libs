@@ -396,7 +396,7 @@ origin and should be installed into Racket packages.")))
    `(("rkt-pkg-skel/LICENSE-Apache-2.0.txt"
       ,(local-file "aux-files/LICENSE-Apache-2.0.txt"))
      ("rkt-pkg-skel/LICENSE-MIT.txt"
-      ,(local-file "aux-files/LICENSE-Apache-2.0.txt"))
+      ,(local-file "aux-files/LICENSE-MIT.txt"))
      ("rkt-pkg-skel/.gitignore"
       ,(local-file "aux-files/gitignore-skel"))
      ("rkt-pkg-skel/provenance/flake.lock"

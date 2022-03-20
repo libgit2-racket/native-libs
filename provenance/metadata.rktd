@@ -1,0 +1,44 @@
+#hasheq((breaking-change-label . "")
+        (cfg-flags-common
+         .
+         ("-DDEPRECATE_HARD=ON"
+          "-DREGEX_BACKEND=builtin"
+          "-DUSE_SSH=OFF"
+          "-DUSE_HTTP_PARSER=builtin"
+          "-DUSE_BUNDLED_ZLIB=ON"
+          "-DUSE_NTLMCLINT=OFF"))
+        (cfg-flags-unix . ("-DUSE_HTTPS=OpenSSL-Dynamic"))
+        (cfg-flags-windows
+         .
+         ("-DCMAKE_RC_COMPILER=${arch}-w64-mingw32-windres"
+          "-DDLLTOOL=${arch}-w64-mingw32-dlltool"
+          "-DCMAKE_C_FLAGS=-static-libgcc"
+          "-DCMAKE_CXX_FLAGS=-static-libgcc"
+          "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc"
+          "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc"))
+        (deprecate-hard . #t)
+        (libgit2-rev . "v1.4.2")
+        (libgit2-sha256
+         .
+         "0xd5w2kzdafipf10sdjmrzzsi12q8rkpcafajwlnmwvrbg6ldvs5")
+        (libgit2-url . "https://github.com/libgit2/libgit2")
+        (libgit2-version . "1.4.2")
+        (nixpkgs-source+lock-info
+         .
+         #hasheq((lastModifiedDate . "20220317041211")
+                 (narHash
+                  .
+                  "sha256-Jcc+vHNDN3KDWuzGNTl3A24ICGovPneJDejiN2t57QI=")
+                 (owner . "NixOs")
+                 (ref . "nixos-21.11")
+                 (repo . "nixpkgs")
+                 (rev . "2c66a7a6e036971c4847cca424125f55b9eb0b0b")))
+        (pkg-version . "0.0.0.3")
+        (self-source-info
+         .
+         #hasheq((lastModifiedDate . "20220320003605")
+                 (narHash
+                  .
+                  "sha256-dYU0Xn1VXGUrTTn337LJ797RW7rSdz95I5Z1wGYjZwU=")
+                 (rev . "8d99f34081bcfcd141c74bf6fe967714bf58bce0")))
+        (so-version . "1.4"))

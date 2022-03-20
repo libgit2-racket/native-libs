@@ -36,9 +36,9 @@ license and the `MIT` license.
 The contents of this package were generated using
 [Guix](https://guix.gnu.org) and a [Nix
 flake](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html)
-with NAR hash `sha256-dYU0Xn1VXGUrTTn337LJ797RW7rSdz95I5Z1wGYjZwU=`,
-last modified on 2022-03-20T00:36:05Z. The flake is from Git commit
-[`8d99f34081bcfcd141c74bf6fe967714bf58bce0`](https://github.com/LiberalArtist/native-libgit2-pkgs/commit/8d99f34081bcfcd141c74bf6fe967714bf58bce0):
+with NAR hash `sha256-OeZG/N5N9vfRLW9RqHRkSLqFBmtxPAJue/2cFKyTDj4=`,
+last modified on 2022-03-20T03:16:09Z. The flake is from Git commit
+[`2700a945c6a8f814eb0e17d3116bc141406db69e`](https://github.com/LiberalArtist/native-libgit2-pkgs/commit/2700a945c6a8f814eb0e17d3116bc141406db69e):
 if you are reading this file in a Git repository with the same structure
 as
 [https://github.com/LiberalArtist/native-libgit2-pkgs](https://github.com/LiberalArtist/native-libgit2-pkgs),

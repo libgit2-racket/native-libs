@@ -4,7 +4,7 @@
 (define pkg-name "libgit2-native-libs")
 (define collection 'multi)
 
-(define version "0.0.0.3")
+(define version "0.0.0.4")
 (define pkg-desc "native libraries for \"libgit2\" (meta-package)")
 (define pkg-authors '(philip))
 

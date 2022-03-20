@@ -52,7 +52,7 @@
       (if (or RKT_NOT_A_DRILL
               (directory-exists? "provenance"))
           (parameterize ([current-directory "provenance"])
-            (cons (file->value "channels.scm")
+            (cons (file->value "channels.txt") ;; <- extension is to placate `raco setup`
                   (for/list ([pth (in-list (map car specs))])
                     (string-trim (file->string pth)))))
           (cons '(list (channel

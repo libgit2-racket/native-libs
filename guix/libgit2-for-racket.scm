@@ -401,6 +401,6 @@ origin and should be installed into Racket packages.")))
       ,(local-file "aux-files/gitignore-skel"))
      ("rkt-pkg-skel/provenance/flake.lock"
       ,(local-file "aux-files/flake.lock"))
-     ("rkt-pkg-skel/provenance/channels.scm"
+     ("rkt-pkg-skel/provenance/channels.txt" ;; placate `raco setup`
       ,(local-file "../channels.scm")))))
 

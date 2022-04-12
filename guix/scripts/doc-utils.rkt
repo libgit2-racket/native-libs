@@ -25,8 +25,17 @@
 (define (make-branch-name* suffix)
   (make-branch-name breaking-change-label suffix))
 
-(define (md-section . args)
-  (apply section #:style '(hidden-number) args))
+(define (md-section #:tag [tag #f] . args)
+  (let-values ([{section pre-content*}
+                (match args
+                  [(cons (? procedure? section) args)
+                   (values section args)]
+                  [_
+                   (values section args)])])
+    (apply section
+           #:tag tag
+           #:style '(hidden-number)
+           pre-content*)))
 
 (define (rel-link file)
   (hyperlink (++ "./" file) file))

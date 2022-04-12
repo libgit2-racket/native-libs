@@ -6,7 +6,7 @@ let
         if [ $# -eq 0 ]; then
            inferredArgs=(${default})
         else
-           inferredArgs=( "$@:1" )
+           inferredArgs=( "''${@:1}" )
         fi
       '';
     in rec {

@@ -4,7 +4,7 @@ let
 
   # Per <https://nixos.org/manual/nixpkgs/stable/#sec-cross-usage>,
   # this indirection should be unneeded when
-  # <https://github.com/NixOS/nixpkgs/issues/34274 is fixed>.
+  # <https://github.com/NixOS/nixpkgs/issues/34274> is fixed>.
 
   allPlatforms = map (import nixpkgs) (with nixpkgs.lib.systems.examples; [
     { localSystem = gnu64; }

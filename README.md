@@ -3,11 +3,12 @@
 This repository packages the [libgit2](https://libgit2.org) shared
 library for the Racket package system.
 
-The scripts contained in this branch (`build-scripts`) are used to
+The scripts contained qin this branch (`build-scripts`) are used to
 compile libgit2 for all supported platforms and to pack the binaries
-into platform-specific Racket packages. Each generated package is
-committed to its own “orphan” branch of this repository: the `main`
-branch serves as a navigational aide.
+into platform-specific Racket packages, plus a meta-package that
+encapsulates the platform-conditional dependencies. Each generated
+package is committed to its own “orphan” branch of this repository: the
+`main` branch serves as a navigational aide.
 
 The build scripts are structured as a [Nix
 flake](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html)
@@ -17,8 +18,12 @@ This [README.md](./README.md) file itself is also generated
 programmatically: see [Changing Things](#changing-things) for
 instructions on editing and regenerating it.
 
-**Quick Start:** Try `nix run` or `make show`. See [Running the
-Build](#running-the-build) for more.
+**Quick Start:** Try `nix run`, `make show`, or—without even needing to
+clone this repository!—`nix flake show
+github:LiberalArtist/native-libgit2-pkgs/build-scripts`. See [Running
+the Build](#running-the-build) for more.
+
+**Contents:**
 
   
 > [Prerequisites](#prerequisites)  
@@ -26,8 +31,10 @@ Build](#running-the-build) for more.
 >> [Continuous Integration](#continuous-integration)  
   
 > [Running the Build](#running-the-build)  
+>> [Alternate Command Spellings](#alternate-command-spellings)  
   
 > [Changing Things](#changing-things)  
+>> [Update Lockfiles](#update-lockfiles)  
   
 > [License](#license)  
 
@@ -118,9 +125,109 @@ In principle, the general approach would likely be a pipeline that:
 
 ## Running the Build
 
-Write things here ...
+**Important!** Git tree dirty ...
+
+In principle, you don’t even need a Git clone of this repository to
+generate the Racket packages. Assuming you have the [recommended
+setup](#recommended-setup), running the command:
+
+  `nix run github:LiberalArtist/native-libgit2-pkgs/build-scripts`
+
+will compile libgit2 and generate the Racket packages for all platforms.
+In practice, you probably will have a Git clone, so you’ll likely prefer
+to use:
+
+  `nix run .#guix-build`
+
+or, even shorter, just `nix run` (see [Alternate Command
+Spellings](#alternate-command-spellings)).
+
+To create e.g. `"tmp-guix-output"` as a symlink to the build result
+(which resides in the immutable Guix store), run:
+
+  `NIX_RUN_GUIX_BUILD_ROOT=tmp-guix-output nix run`
+
+More generally, `nix run .#guix-build` runs [`guix
+build`](https://guix.gnu.org/manual/devel/en/html_node/Invoking-guix-build.html)
+in an environment respecting [channels.scm](./channels.scm) \(see
+[Update Lockfiles](#update-lockfiles)) and with the Guix code generated
+by Nix available. You can call `nix run .#guix-build --` with arguments
+to pass to `guix build` instead of the default \(`--keep-failed
+racket-libgit2-omnibus`), and defining `NIX_RUN_GUIX_BUILD_ROOT` causes
+the
+[`--root=`](https://guix.gnu.org/manual/devel/en/html_node/Additional-Build-Options.html#index-GC-roots_002c-adding)
+flag to be added.
+
+Similarly, `nix run .#guix-show` provides an interface to [`guix
+show`](https://guix.gnu.org/manual/devel/en/html_node/Invoking-guix-package.html)
+with a default argument of `racket-libgit2-omnibus` if no arguments are
+provided. (This command does not consult `NIX_RUN_GUIX_BUILD_ROOT`.)
+
+Most generally of all, `nix run .#time-machine --` provides an analagous
+to [`guix  time-machine
+--`](https://guix.gnu.org/manual/devel/en/html_node/Invoking-guix-time_002dmachine.html)
+\(with no implicit arguments\). Arguments supplied to `nix run
+.#time-machine --` are passed directly to the `guix` command in the
+[appropriate environment](#update-lockfiles). This command is used to
+implement `nix run .#guix-build` and `nix run .#guix-show`.
+
+For development without access to an Apple machine, there are also
+variants of these commands suffixed with `-sans-apple` (e.g. `nix run
+.#guix-build-sans-apple`) that skip the packages for Apple platforms
+that we [currently can’t cross-compile](#prerequisites) from non-Apple
+build machines.
+
+Running `make show` will print a complete listing of available commands,
+along with other useful metadata. (In contrast, the other `make` targets
+are used for [updating the contents of this
+repository](#update-lockfiles), rather than for compiling libgit2 or
+generating Racket packages.) The items listed under “apps” are commands
+for `nix run`.
+
+The above commands invoked via `nix run` ultimately run Guix, so they
+only work on [platforms for which Guix is
+available](https://guix.gnu.org/manual/devel/en/html_node/GNU-Distribution.html)
+(i.e. GNU/Linux).
+
+Instead, the command `nix build .#guix-with-apple` (or just `nix build`)
+compiles libgit2 for all Apple platforms (c.f. `nix build
+.#guix-sans-apple`) and generates the files that will become the input
+to the Guix stage of the build. The other items listed by `make show`
+under “packages” can also be used with `nix build` to build more
+granular pieces. All of the commands using `nix build` can be run on any
+platform Nix supports, including Apple machines.
+
+Note that `nix build` will create `"result"` as a symlink to the build
+result (which lives in the immutable Nix store) unless `--no-link` or
+`-o`/`--out-link` is used.
+
+### Alternate Command Spellings
+
+In commands like:
+
+  `nix run .#guix-build`
+
+the `.#guix-build` subform is a Nix
+[“installable”](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix.html#installables):
+specifically, a “flake output reference”. These can be written in many
+equivalent ways, but, in brief:
+
+* The `.` portion can be replaced by a different form of [flake
+  reference](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html#flake-references),
+  e.g. `github:LiberalArtist/native-libgit2-pkgs/build-scripts` \(but
+  note that this example would build the commit from the specified Git
+  repository and branch, rather than your local working tree!);
+
+* The “fragment” (the portion beginning with `#`) can be ommitted if it
+  refers to the `defaultApp` or `defaultPackage` reported by `make show`
+  (that’s `#guix-build` and `#guix-with-apple`); and
+
+* A command of the form `nix ⟨cmd⟩ .`—i.e., without any fragment or
+  arguments—is equivalent to `nix ⟨cmd⟩`.
 
 ## Changing Things
+
+### Update Lockfiles
 
 Write things here ...
 

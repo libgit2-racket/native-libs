@@ -18,7 +18,7 @@
       rkt = import "${self}/version.nix";
       build = import "${self}/nix/build.nix" { inherit self nixpkgs rkt; };
       inherit (import "${self}/nix/platforms.nix" { inherit nixpkgs; })
-        supportedBuildPlatforms darwinHostPlatforms;
+        supportedBuildPlatforms supportedGuixBuildPlatforms darwinHostPlatforms;
 
       applePlatformsExtracted =
         # result is keyed by the Racket platform name
@@ -29,9 +29,15 @@
         supportedBuildPlatforms;
 
       commands = builtins.mapAttrs (system: pkgs:
-        import "${self}/nix/commands.nix" {
-          inherit nixpkgs pkgs;
-          basePackages = basePackages.${system};
+        # currently, the apps all run Guix, so none of them run on Darwin
+        if supportedGuixBuildPlatforms ? ${system} then
+          import "${self}/nix/commands.nix" {
+            inherit nixpkgs pkgs;
+            basePackages = basePackages.${system};
+          }
+        else {
+          packages = { };
+          apps = { };
         }) supportedBuildPlatforms;
 
     in rec {
@@ -43,7 +49,8 @@
       defaultPackage =
         builtins.mapAttrs (_: builtins.getAttr "guix-with-apple") packages;
 
-      apps = builtins.mapAttrs (_: { apps, ... }: apps) commands;
+      apps = attrsets.filterAttrs (_: apps: apps != { })
+        (builtins.mapAttrs (_: { apps, ... }: apps) commands);
 
       defaultApp = builtins.mapAttrs (_: builtins.getAttr "guix-build") apps;
     };

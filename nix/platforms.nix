@@ -22,10 +22,17 @@ let
       name = name pkgs;
       value = pkgs;
     }) (filter choose allPlatforms);
-in {
+in rec {
 
   supportedBuildPlatforms = filterToAttrs {
     choose = pkgs: pkgs.buildPlatform == pkgs.hostPlatform;
+    name = pkgs: pkgs.buildPlatform.system;
+  };
+
+  supportedGuixBuildPlatforms = filterToAttrs rec {
+    choose = pkgs:
+      ((!pkgs.hostPlatform.isDarwin)
+        && (hasAttr (name pkgs) supportedBuildPlatforms));
     name = pkgs: pkgs.buildPlatform.system;
   };
 

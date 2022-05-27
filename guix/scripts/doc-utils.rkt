@@ -79,7 +79,7 @@
 
  @(if arch+os
       @list{The contents of this package}
-      @list{These contents of these packages, including this meta-package,})
+      @list{The contents of these packages, including this meta-package,})
  were generated using @hyperlink["https://guix.gnu.org"]{Guix} and a
  @hyperlink[
  "https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html"

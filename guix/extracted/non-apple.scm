@@ -62,14 +62,6 @@
        ((#:tests? _ #t)
         ;; TODO: need to work around OpenSSL-Dynamic
         #f)
-       ((#:phases std-phases #~%standard-phases)
-        #~(modify-phases #$std-phases
-            (add-before 'check 'add-clar-alias
-              (lambda args
-                ;; workaround until the Guix definition moves to 1.4 series
-                (when (file-exists? "libgit2_tests")
-                  ;; it would have .exe for mingw, which we can't run anyway
-                  (copy-file "libgit2_tests" "libgit2_clar"))))))
        ((#:configure-flags _ ''())
         #~(append
            #$(let ((sys (or (%current-target-system)

@@ -48,12 +48,15 @@
       #~`(("." "."))
       #:imported-modules
       `((guix build union)
+        (guix build json)
         ,@%copy-build-system-modules)
       #:modules
       `((guix build copy-build-system)
         (guix build utils)
         (guix build union)
+        (guix build json)
         (srfi srfi-26)
+        (ice-9 textual-ports)
         (ice-9 match))
       #:phases
       #~(modify-phases %standard-phases
@@ -71,8 +74,9 @@
               (chdir "build"))))))
     (home-page
      "https://github.com/LiberalArtist/native-libgit2-pkgs/tree/build-scripts")
-    (synopsis "TODO")
-    (description "TODO")
+    (synopsis "All generated Racket libgit2 packages")
+    (description "This Guix package combines all the generated Racket
+libgit2 packages for distributing the shared library.")
     (license
      (list license:asl2.0 license:expat license:gpl2))))
 
@@ -94,8 +98,9 @@
                          (format #f "~s"
                                  (vector #$racket-platform
                                          (getenv "LIB_FILE_NAME"))))))))))
-     (synopsis "TODO")
-     (description "TODO"))))
+     (synopsis "Platform-specific Racket libgit2 package")
+     (description "This is a Racket package providing the libgit2
+shared library build for a specific platform."))))
 
 (define (make-branch-name suffix)
   (string-append breaking-change-label
@@ -116,7 +121,7 @@
   (hidden-package
    (package
      (inherit racket-libgit2-omnibus)
-     (name "racket-pkg-libgit2-abstract")
+     (name "racket-libgit2-abstract")
      (source #f)
      (inputs '())
      (propagated-inputs '())
@@ -137,30 +142,30 @@
                                         (map cdr (or native-inputs inputs)))
                    #:create-all-directories? #t)
                   (chdir "build")))
-              (add-after 'unpack 'unpack-provenance
+              (add-after 'unpack 'set-json-args
                 (lambda* (#:key source #:allow-other-keys)
-                  (define src
-                    (and=> source (cut string-append <> "/provenance")))
-                  (when (and src (directory-exists? src))
-                    (copy-recursively src "provenance"))))
-              (add-after 'unpack-provenance 'write-pack-provenance
-                (lambda args
-                  (mkdir-p "provenance")
-                  (with-directory-excursion "provenance"
-                    (for-each (lambda (file content)
-                                (with-output-to-file file
-                                  (lambda ()
-                                    (format #t "~a\n" content))))
-                              `("packed-by.txt" "packed-on.txt")
-                              `("Guix"         #$(%current-system))))))
-              (add-before 'install 'set-json-args
-                (lambda args
+                  (define (get-built mode)
+                    (cons mode (call-with-input-file
+                                   (string-append "built-" mode ".txt")
+                                 get-line)))
+                  (define js
+                    (with-directory-excursion
+                        (string-append source "/provenance")
+                      `(@ ("built"
+                           @ ,@(map get-built
+                                    '("by" "on")))
+                          ("packed"
+                           @ ("by" . "Guix")
+                             ("on" . #$(%current-system))))))
+                  (setenv "RKT_JSON_BUILT_PACKED_ARGS"
+                          (call-with-output-string
+                            (cut write-json js <>)))
                   (setenv "RKT_JSON_ARGS"
                           #$(call-with-output-string
                               (cut write-json
                                    (match all-from-nix-jsexpr
                                      (('@ . pairs)
-                                      `(@ (cfg-flags-windows
+                                      `(@ ("cfg-flags-windows"
                                            . ,cfg-flags-windows-jsexpr)
                                           ,@pairs)))
                                    <>)))
@@ -189,27 +194,27 @@
                     '(begin
                        (require (file #$(file-append local-scripts
                                                      "/args.rkt")))
-                       (with-output-to-file "provenance/self.rev.txt"
+                       (with-output-to-file "self.rev.txt"
                          (λ ()
                            (displayln
                             (or self.rev
                                 (++ "DIRTY-" self.lastModifiedDate))))))))))
-              (add-after 'set-json-args 'write-metadata-rktd
-                ;; it could be metadata.json, but neither
+              (add-after 'set-json-args 'write-provenance-rktd
+                ;; it could be provenance.json, but neither
                 ;; Racket nor Guix has a pretty-printer
                 (lambda args
                   (invoke
                    "racket"
                    "-e"
-                   #$(format
-                      #f "~s" '(begin
-                                 (require json)
-                                 (with-output-to-file
-                                     "provenance/metadata.rktd"
-                                   (λ ()
-                                     (pretty-write
-                                      (string->jsexpr
-                                       (getenv "RKT_JSON_ARGS")))))))))))))))
+                   (format
+                    #f "~s"
+                    '(begin
+                       (require (file #$(file-append local-scripts
+                                                     "/args.rkt")))
+                       (with-output-to-file "provenance.rktd"
+                         (λ ()
+                           (pretty-write
+                            provenance-metadata-jsexpr)))))))))))))
      (home-page name)
      (synopsis name)
      (description name))))
@@ -236,15 +241,12 @@
    "native-libs"
    (package
      (inherit racket-pkg-libgit2-abstract)
-     (native-inputs
-      (modify-inputs
-       (package-native-inputs racket-pkg-libgit2-abstract)
-       (prepend
-        (file-union
-         (string-append "racket-pkg" (make-pkg-name "native-libs")
-                        "-" pkg-version)
-         `(("rkt-pkg-skel/provenance"
-            ,(local-file "aux-files/nix-provenance" #:recursive? #t)))))))
+     (source
+      (file-union
+       (string-append "racket-" (make-pkg-name "native-libs")
+                      "-" pkg-version)
+       `(("provenance"
+          ,(local-file "aux-files/nix-provenance" #:recursive? #t)))))
      (arguments
       (substitute-keyword-arguments
           (package-arguments racket-pkg-libgit2-abstract)
@@ -255,8 +257,9 @@
                  (setenv "README_SCRBL" "meta-readme.scrbl")
                  (setenv "RKT_SEXPR_ARGS"
                          (format #f "~s" '#$all-platform-names))))))))
-     (synopsis "TODO")
-     (description "TODO"))))
+     (synopsis "Racket libgit2 platform meta-package")
+     (description "This Racket package has platform-specific
+dependencies on the libgit2 shared library metapackages."))))
 
 (define abstract-platform-package
   (package
@@ -399,8 +402,8 @@ origin and should be installed into Racket packages.")))
       ,(local-file "aux-files/LICENSE-MIT.txt"))
      ("rkt-pkg-skel/.gitignore"
       ,(local-file "aux-files/gitignore-skel"))
-     ("rkt-pkg-skel/provenance/flake.lock"
+     ("rkt-pkg-skel/flake.lock"
       ,(local-file "aux-files/flake.lock"))
-     ("rkt-pkg-skel/provenance/channels.txt" ;; placate `raco setup`
+     ("rkt-pkg-skel/channels.txt" ;; placate `raco setup`
       ,(local-file "../channels.scm")))))
 

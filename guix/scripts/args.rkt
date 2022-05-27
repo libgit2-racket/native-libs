@@ -6,6 +6,12 @@
          H-T
          ~str
          ++
+         provenance-metadata-jsexpr
+         ;; from RKT_JSON_BUILT_PACKED_ARGS
+         built-by
+         built-on
+         packed-by
+         packed-on
          ;; from RKT_JSON_ARGS
          pkg-version
          breaking-change-label
@@ -48,7 +54,8 @@
   (begin (define var (getenv (~str var))) ...))
 
 (define-syntax-parse-rule (match-env VAR:id parse-from-string:expr pat:expr default:expr)
-  (match-define pat
+  #:with VAR-or-default (format-id #'VAR "~a-or-default" #'VAR #:subs? #t)
+  (match-define (and pat VAR-or-default)
     (cond
       [VAR
        => parse-from-string]
@@ -57,7 +64,11 @@
       [else
        (error 'match-env (~str VAR))])))
 
-(define-env RKT_NOT_A_DRILL RKT_JSON_ARGS RKT_SEXPR_ARGS)
+(define-env
+  RKT_NOT_A_DRILL
+  RKT_JSON_ARGS
+  RKT_JSON_BUILT_PACKED_ARGS
+  RKT_SEXPR_ARGS)
 
 (define-syntax-parse-rule (match-sexpr-args pat:expr default:expr)
   (match-env RKT_SEXPR_ARGS string->sexpr pat default))
@@ -111,6 +122,21 @@
                    (~? (and prefixed-opt-var pat) prefixed-opt-var))
               ...)])))
 
+(match-env RKT_JSON_BUILT_PACKED_ARGS
+           string->jsexpr
+           (H-T [#:_ built
+                 (H-T #:prefix built-
+                      by
+                      on)]
+                [#:_ packed
+                 (H-T #:prefix packed-
+                      by
+                      on)])
+           #hasheq([built . #hasheq([by . "HappySome"]
+                                    [on . "Athens"])]
+                   [packed . #hasheq([by . "OtherSome"]
+                                     [on . "Stratford"])]))
+
 (match-env RKT_JSON_ARGS
            string->jsexpr
            (H-T pkg-version
@@ -163,3 +189,13 @@
                               [owner . "NixOs"]
                               [repo . "nixpkgs"]
                               [ref . "nixos-21.11"])]))
+
+(define provenance-metadata-jsexpr
+  (for/fold ([hsh (hash-set RKT_JSON_ARGS-or-default
+                            'this-package
+                            RKT_JSON_BUILT_PACKED_ARGS-or-default)])
+            ([k '(self-source-info nixpkgs-source+lock-info)])
+    (hash-update hsh
+                 k
+                 (λ (inner)
+                   (hash-update inner 'lastModifiedDate beautify-lastModifiedDate)))))

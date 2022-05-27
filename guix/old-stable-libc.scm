@@ -25,6 +25,7 @@
 
 ;; glibc : distro
 ;; -----------------------------
+;;  2.35 : Ubuntu 22.04 (Jammy)
 ;;  2.31 : Debian 11 (Bullseye)
 ;;  2.31 : Ubuntu 20.04 (Focal)
 ;;  2.28 : Debian 10 (Buster)

@@ -12,6 +12,7 @@
     "-DUSE_NTLMCLINT=OFF"
   ];
 
+  # `unix` here includes Mac OS
   unix = [ "-DUSE_HTTPS=OpenSSL-Dynamic" ];
 
 }

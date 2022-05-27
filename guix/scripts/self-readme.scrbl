@@ -15,7 +15,7 @@ This repository packages the
 @hyperlink["https://libgit2.org"]{libgit2} shared library
 for the Racket package system.
 
-The scripts contained qin this branch (@tt{build-scripts})
+The scripts contained in this branch (@tt{build-scripts})
 are used to compile libgit2 for all supported platforms and
 to pack the binaries into platform-specific Racket packages,
 plus a meta-package that encapsulates the
@@ -43,6 +43,8 @@ See @secref{run} for more.
 
 @table-of-contents[]
 
+@; ---------------------------------------------------------------------------------------------------
+@; ---------------------------------------------------------------------------------------------------
 @md-section{Prerequisites}
 
 @itemlist[
@@ -89,7 +91,7 @@ See @secref{run} for more.
                Guix seemed to involve more parentheses.}
             ]}]
 
-@md-section[#:tag "recommended-setup" subsection]{Recommended Setup}
+@md-section[subsection #:tag "recommended-setup"]{Recommended Setup}
 
 For maximum convenience, work on an @tt{x86_64-linux}
 machine (a VM is fine) with both Nix and Guix installed. For
@@ -113,7 +115,7 @@ the remote machine.
  be able to SSH non-interactively (i.e. without a passphrase)
  into an account on the @tt{x86_64-macosx} machine that:
 
- @itemlist[@item{Has the @exec{nix} command @envvar{PATH} of
+ @itemlist[@item{Has the @exec{nix} command in the @envvar{PATH} of
              ``non-interactive login shells''; and}
 
            @item{Is listed under @tt{trusted-users} in the
@@ -134,17 +136,28 @@ In principle, the general approach would likely be a pipeline that:
            previous step, then builds the Racket packages as described
            under @secref{run};}
           @item{On various runners, potentially in
-           parallel, tests the built runners as desired (or maybe this
+           parallel, tests the built Racket packages as desired (or maybe this
            is better left for the CI of the Racket @tt{libgit2} package
            itself); and}
           @item{Finally, exports the built packages in some
            useful way, perhaps even committing them to the appropriate
            branches.}]
 
-
+@; ---------------------------------------------------------------------------------------------------
+@; ---------------------------------------------------------------------------------------------------
 @md-section[#:tag "run"]{Running the Build}
 
-@bold{Important!} Git tree dirty ...
+@margin-note{
+ @bold{Important!} If you see a message like
+ ``@elem[#:style 'tt]{@literal{warning: Git tree '⟨path⟩' is dirty}}'',
+ your Git checkout has uncommitted changes. That's fine (indeed, useful)
+ for development, but please do not commit generated Racket packages
+ built from a ``dirty'' tree. The generated Racket packages embed the
+ specific commit from which they were built so that they can be reproduced,
+ but it isn't possible to reproduce miscellaneous uncommitted changes.
+ So, first commit your changes to this branch, then run a clean build
+ and commit the generated packages to their respective branches.
+}
 
 In principle, you don't even need a Git clone of this
 repository to generate the Racket packages. Assuming you
@@ -244,7 +257,7 @@ written in many equivalent ways, but, in brief:
   specified Git repository and branch, rather than your local
   working tree!);}
  @item{The ``fragment'' (the portion beginning with
-  @litchar{#}) can be ommitted if it refers to the
+  @litchar{#}) can be omitted if it refers to the
   @tt{defaultApp} or @tt{defaultPackage} reported by
   @exec{make show} (that's @litchar{#guix-build} and
   @litchar{#guix-with-apple}); and}
@@ -252,10 +265,60 @@ written in many equivalent ways, but, in brief:
   without any fragment or arguments---is equivalent to
   @exec{nix ⟨cmd⟩}.}]
 
-
+@; ---------------------------------------------------------------------------------------------------
+@; ---------------------------------------------------------------------------------------------------
 @md-section[#:tag "edit"]{Changing Things}
 
-@md-section[subsection #:tag "edit-lockfiles"]{Update Lockfiles}
-Write things here ...
+This branch is organized to (hopefully!) make routine
+updates easy without much needing knowledge of Nix or Guix.
 
+@md-section[subsection #:tag "edit-lockfiles"]{Updating Lockfiles}
+
+The files @rel-link{flake.lock} and @rel-link{channels.scm}
+control the specific versions used of the Nix and Guix
+package repositories, respectively. It should be safe to
+update them routinely by running @exec{make update}.
+
+@md-section[subsection #:tag "edit-version"]{Updating libgit2 and Package Versions}
+@;FIXME
+@rel-link{version.nix}
+
+@md-section[subsection]{Changing @exec{configure} Flags}
+@;FIXME
+@rel-link{nix/flags.nix}
+@rel-link{guix/platforms.scm}
+
+@md-section[subsection]{Changing the Nixpkgs Branch}
+
+While Guix follows a ``rolling release'' model,
+@hyperlink["https://github.com/NixOS/nixpkgs"]{Nixpkgs} has
+semiannual stable releases, which are implemented as
+branches of the Nixpkgs Git repository. The @tt{inputs}
+definition at the top of @rel-link{flake.nix} specifies
+which release we are using. It is important to note that the
+Nixpkgs release used effectively determines
+@tt{MACOSX_VERSION_MIN}: if changing the Nixpkgs branch would drop
+support for any versions, @;FIXME
+
+@md-section[subsection #:tag "edit-glibc"]{Changing the Glibc Version}
+@;FIXME
+@rel-link{guix/old-stable-libc.scm}
+
+@md-section[subsection]{Adding or Changing Platforms}
+@; FIXME
+@rel-link{nix/platforms.nix}
+@rel-link{guix/platforms.scm}
+
+@md-section[subsection #:tag "edit-readme"]{Editing @filepath{README.md} Files}
+@; FIXME
+@rel-link{guix/scripts/self-readme.scrbl}
+@rel-link{guix/scripts/platform-readme.scrbl}
+@rel-link{guix/scripts/meta-readme.scrbl}
+
+@md-section[subsection #:tag "edit-info-rkt"]{Editing @filepath{info.rkt} Files}
+@; FIXME
+@rel-link{guix/scripts/mk-info-rkt.rkt}
+
+@; ---------------------------------------------------------------------------------------------------
+@; ---------------------------------------------------------------------------------------------------
 @make-license-section[]

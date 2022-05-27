@@ -17,28 +17,32 @@
           "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc"
           "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc"))
         (deprecate-hard . #t)
-        (libgit2-rev . "v1.4.2")
+        (libgit2-rev . "v1.4.3")
         (libgit2-sha256
          .
-         "0xd5w2kzdafipf10sdjmrzzsi12q8rkpcafajwlnmwvrbg6ldvs5")
+         "02x1a4zrzpzjd0yxnsi8njh5hgihc1iy1v4r0fnl8m4ckcgp6x2s")
         (libgit2-url . "https://github.com/libgit2/libgit2")
-        (libgit2-version . "1.4.2")
+        (libgit2-version . "1.4.3")
         (nixpkgs-source+lock-info
          .
-         #hasheq((lastModifiedDate . "20220317041211")
+         #hasheq((lastModifiedDate . "2022-05-22T14:30:24Z")
                  (narHash
                   .
-                  "sha256-Jcc+vHNDN3KDWuzGNTl3A24ICGovPneJDejiN2t57QI=")
+                  "sha256-klSCYMpR4TqWYoTD/xZ2qM9UIPRFC6pK+S/kJuVLbFw=")
                  (owner . "NixOs")
                  (ref . "nixos-21.11")
                  (repo . "nixpkgs")
-                 (rev . "2c66a7a6e036971c4847cca424125f55b9eb0b0b")))
-        (pkg-version . "0.0.0.4")
+                 (rev . "06db2e2197401b74fcf82d4e84be15b0b5851c7b")))
+        (pkg-version . "0.1")
         (self-source-info
          .
-         #hasheq((lastModifiedDate . "20220320031609")
+         #hasheq((lastModifiedDate . "2022-05-27T11:29:06Z")
                  (narHash
                   .
-                  "sha256-OeZG/N5N9vfRLW9RqHRkSLqFBmtxPAJue/2cFKyTDj4=")
-                 (rev . "2700a945c6a8f814eb0e17d3116bc141406db69e")))
-        (so-version . "1.4"))
+                  "sha256-3qR5+c5qLZ37T3X93ntqg2CQMTwQWY46rNQO4FVrfV8=")
+                 (rev . "770b8f2717a4152af0bea8018e8a915dfaf6f574")))
+        (so-version . "1.4")
+        (this-package
+         .
+         #hasheq((built . #hasheq((by . "Guix") (on . "x86_64-linux")))
+                 (packed . #hasheq((by . "Guix") (on . "x86_64-linux"))))))

@@ -4,7 +4,7 @@
 (define pkg-name "libgit2-x86_64-linux")
 (define collection "libgit2")
 
-(define version "0.0.0.4")
+(define version "0.1")
 (define pkg-desc "native libraries for \"libgit2\" on \"x86_64-linux\"")
 (define pkg-authors '(philip))
 

@@ -15,8 +15,9 @@ flake](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html)
 that generates [Guix](https://guix.gnu.org) package definitions.
 
 This [README.md](./README.md) file itself is also generated
-programmatically: see [Changing Things](#changing-things) for
-instructions on editing and regenerating it.
+programmatically: see [Editing `"README.md"`
+Files](#editing-readmemd-files) for instructions on editing and
+regenerating it.
 
 **Quick Start:** Try `nix run`, `make show`, or—without even needing to
 clone this repository!—`nix flake show
@@ -243,7 +244,30 @@ equivalent ways, but, in brief:
 ## Changing Things
 
 This branch is organized to (hopefully!) make routine updates easy
-without much needing knowledge of Nix or Guix.
+without needing much knowledge of Nix or Guix.
+
+Overall, this branch is organized in layers:
+
+* The [nix/](./nix/) directory and top-level `".nix"` files contain Nix
+  expressions.
+
+* The [guix/](./guix/) directory contains Guile modules and auxiliary
+  files to be added to the Guile load path when running Guix. Many of
+  the Guile files will not run successfully and may not even compile
+  without additional modules and other files added by Nix. (The
+  top-level `".scm"` files also contain fragments of Guile, as opposed
+  to Racket.)
+
+* The [guix/scripts/](./guix/scripts/) directory contains Racket files.
+  They are primarily used via Guix, but, in contrast to the Guile code,
+  they can run without any generated files, e.g. to generate this
+  [README.md](./README.md) file.
+
+When editing Nix files, use
+[`nixfmt`](https://github.com/serokell/nixfmt) to format them
+consistently.
+
+Specific kinds of changes are explained in the subsections below.
 
 ### Updating Lockfiles
 
@@ -254,12 +278,25 @@ by running `make update`.
 
 ### Updating libgit2 and Package Versions
 
-[version.nix](./version.nix)
+The file [version.nix](./version.nix) specifies the version of the
+libgit2 shared library to build as well as the version (in the sense of
+Package Concepts) of the generated Racket packages.
+
+To support breaking changes, the `breakingChangeLabel`, if it is not
+`""`, is incorporated into the names of the generated packages and
+corresponding Git branches, with hyphens managed automatically. For
+example, if `breakingChangeLabel` were `"luftschloss"`, a package would
+be generated called `libgit2-luftschloss-native-libs` that would expect
+to live on the `luftschloss-native-libs` branch.
 
 ### Changing `configure` Flags
 
-[nix/flags.nix](./nix/flags.nix)
-[guix/platforms.scm](./guix/platforms.scm)
+Most flags for libgit2’s `configure` script are specified in
+[nix/flags.nix](./nix/flags.nix). Windows-specific flags are instead
+specified in [guix/platforms.scm](./guix/platforms.scm). As a special
+case, the use of `-DDEPRECATE_HARD=ON` is controlled by the value of
+`deprecateHard` in [version.nix](./version.nix) (see [Updating libgit2
+and Package Versions](#updating-libgit2-and-package-versions)).
 
 ### Changing the Nixpkgs Branch
 
@@ -270,26 +307,44 @@ repository. The `inputs` definition at the top of
 [flake.nix](./flake.nix) specifies which release we are using. It is
 important to note that the Nixpkgs release used effectively determines
 `MACOSX_VERSION_MIN`: if changing the Nixpkgs branch would drop support
-for any versions,
+for any versions, it would necessitate a new `breakingChangeLabel` (see
+\[missing\]).
 
 ### Changing the Glibc Version
 
-[guix/old-stable-libc.scm](./guix/old-stable-libc.scm)
+The file [guix/old-stable-libc.scm](./guix/old-stable-libc.scm) defines
+the GNU C Library version we link against for GNU/Linux systems, which
+is the primary constraint on supporting old distributions.
 
 ### Adding or Changing Platforms
 
-[nix/platforms.nix](./nix/platforms.nix)
-[guix/platforms.scm](./guix/platforms.scm)
+To generate platforms for an additional non-Apple platform, add it to
+the list in [guix/platforms.scm](./guix/platforms.scm).
+
+The Apple platforms are instead specified in
+[nix/platforms.nix](./nix/platforms.nix), which also determines the
+supported platforms for running the build (see
+[Prerequisites](#prerequisites)). This part is more confusing than one
+might hope.
 
 ### Editing `"README.md"` Files
 
-[guix/scripts/self-readme.scrbl](./guix/scripts/self-readme.scrbl)
+This [README.md](./README.md) file itself is generated from the Scribble
+source in
+[guix/scripts/self-readme.scrbl](./guix/scripts/self-readme.scrbl): run
+`make` to regenerate it. Running `make update` \(see [Updating
+Lockfiles](#updating-lockfiles)) also regenerates this file.
+
+Similarly, the Scribble files
 [guix/scripts/platform-readme.scrbl](./guix/scripts/platform-readme.scrbl)
-[guix/scripts/meta-readme.scrbl](./guix/scripts/meta-readme.scrbl)
+and [guix/scripts/meta-readme.scrbl](./guix/scripts/meta-readme.scrbl)
+are used in the Guix build to generate `"README.md"` for the generated
+Racket packages.
 
 ### Editing `"info.rkt"` Files
 
-[guix/scripts/mk-info-rkt.rkt](./guix/scripts/mk-info-rkt.rkt)
+The `"info.rkt"` files in the generated Racket packages are built using
+[guix/scripts/mk-info-rkt.rkt](./guix/scripts/mk-info-rkt.rkt).
 
 ## License
 

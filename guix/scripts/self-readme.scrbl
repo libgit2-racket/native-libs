@@ -30,7 +30,7 @@ The build scripts are structured as a
 definitions.
 
 This @rel-link{README.md} file itself is also generated
-programmatically: see @secref{edit} for
+programmatically: see @secref{edit-readme} for
 instructions on editing and regenerating it.
 
 @bold{Quick Start:} Try @exec{nix run}, @exec{make show},
@@ -270,7 +270,31 @@ written in many equivalent ways, but, in brief:
 @md-section[#:tag "edit"]{Changing Things}
 
 This branch is organized to (hopefully!) make routine
-updates easy without much needing knowledge of Nix or Guix.
+updates easy without needing much knowledge of Nix or Guix.
+
+Overall, this branch is organized in layers:
+@itemlist[
+ #:style 'ordered
+ @item{The @rel-link{nix/} directory and top-level
+  @filepath{.nix} files contain Nix expressions.}
+ @item{The @rel-link{guix/} directory contains Guile modules
+  and auxiliary files to be added to the Guile load path when
+  running Guix. Many of the Guile files will not run
+  successfully and may not even compile without additional
+  modules and other files added by Nix. (The top-level
+  @filepath{.scm} files also contain fragments of Guile, as
+  opposed to Racket.)}
+ @item{The @rel-link{guix/scripts/} directory contains
+  Racket files. They are primarily used via Guix, but, in
+  contrast to the Guile code, they can run without any
+  generated files, e.g@._ to generate this
+  @rel-link{README.md} file.}]
+
+When editing Nix files, use
+@hyperlink["https://github.com/serokell/nixfmt"]{@exec{nixfmt}}
+to format them consistently.
+
+Specific kinds of changes are explained in the subsections below.
 
 @md-section[subsection #:tag "edit-lockfiles"]{Updating Lockfiles}
 
@@ -280,13 +304,32 @@ package repositories, respectively. It should be safe to
 update them routinely by running @exec{make update}.
 
 @md-section[subsection #:tag "edit-version"]{Updating libgit2 and Package Versions}
-@;FIXME
-@rel-link{version.nix}
+
+The file @rel-link{version.nix} specifies the version of the
+libgit2 shared library to build as well as the
+@; FIXME set-external-root-url doesn't work with scribble/markdown-render
+@tech[#:doc '(lib "pkg/scribblings/pkg.scrbl")]{version} (in the sense of
+@secref["Package_Concepts" #:doc '(lib "pkg/scribblings/pkg.scrbl")])
+of the generated Racket packages.
+
+To support breaking changes, the @tt{breakingChangeLabel},
+if it is not @racket[""], is incorporated into the names of
+the generated packages and corresponding Git branches, with
+hyphens managed automatically. For example, if
+@tt{breakingChangeLabel} were @racket["luftschloss"], a
+package would be generated called
+@tt{libgit2-luftschloss-native-libs} that would expect to
+live on the @tt{luftschloss-native-libs} branch.
 
 @md-section[subsection]{Changing @exec{configure} Flags}
-@;FIXME
-@rel-link{nix/flags.nix}
-@rel-link{guix/platforms.scm}
+
+Most flags for libgit2's @exec{configure} script are
+specified in @rel-link{nix/flags.nix}. Windows-specific
+flags are instead specified in
+@rel-link{guix/platforms.scm}. As a special case, the use of
+@tt{-DDEPRECATE_HARD=ON} is controlled by the value of
+@tt{deprecateHard} in @rel-link{version.nix} (see
+@secref{edit-version}).
 
 @md-section[subsection]{Changing the Nixpkgs Branch}
 
@@ -297,27 +340,43 @@ branches of the Nixpkgs Git repository. The @tt{inputs}
 definition at the top of @rel-link{flake.nix} specifies
 which release we are using. It is important to note that the
 Nixpkgs release used effectively determines
-@tt{MACOSX_VERSION_MIN}: if changing the Nixpkgs branch would drop
-support for any versions, @;FIXME
+@tt{MACOSX_VERSION_MIN}: if changing the Nixpkgs branch
+would drop support for any versions, it would necessitate a
+new @tt{breakingChangeLabel} (see @secref{"edit-version"}).
 
 @md-section[subsection #:tag "edit-glibc"]{Changing the Glibc Version}
-@;FIXME
-@rel-link{guix/old-stable-libc.scm}
+
+The file @rel-link{guix/old-stable-libc.scm} defines the GNU
+C Library version we link against for GNU/Linux systems,
+which is the primary constraint on supporting old distributions.
 
 @md-section[subsection]{Adding or Changing Platforms}
-@; FIXME
-@rel-link{nix/platforms.nix}
-@rel-link{guix/platforms.scm}
+
+To generate platforms for an additional non-Apple platform,
+add it to the list in @rel-link{guix/platforms.scm}.
+
+The Apple platforms are instead specified in
+@rel-link{nix/platforms.nix}, which also determines the
+supported platforms for running the build (see @secref{Prerequisites}).
+This part is more confusing than one might hope.
 
 @md-section[subsection #:tag "edit-readme"]{Editing @filepath{README.md} Files}
-@; FIXME
-@rel-link{guix/scripts/self-readme.scrbl}
-@rel-link{guix/scripts/platform-readme.scrbl}
-@rel-link{guix/scripts/meta-readme.scrbl}
+
+This @rel-link{README.md} file itself is generated from the
+Scribble source in @rel-link{guix/scripts/self-readme.scrbl}:
+run @exec{make} to regenerate it. Running @exec{make update}
+(see @secref{edit-lockfiles}) also regenerates this file.
+
+Similarly, the Scribble files
+@rel-link{guix/scripts/platform-readme.scrbl} and
+@rel-link{guix/scripts/meta-readme.scrbl} are used in the
+Guix build to generate @filepath{README.md} for the
+generated Racket packages.
 
 @md-section[subsection #:tag "edit-info-rkt"]{Editing @filepath{info.rkt} Files}
-@; FIXME
-@rel-link{guix/scripts/mk-info-rkt.rkt}
+
+The @filepath{info.rkt} files in the generated Racket packages
+are built using @rel-link{guix/scripts/mk-info-rkt.rkt}.
 
 @; ---------------------------------------------------------------------------------------------------
 @; ---------------------------------------------------------------------------------------------------

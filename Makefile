@@ -23,9 +23,13 @@ show:
 
 # real targets
 
+RACKET_RELEASES := https://download.racket-lang.org/releases
+RACKET_VERSION_CMD := racket -e "(display (version))"
 README.md: channels.scm manifest.scm flake.lock guix/scripts/*
 	$(GUIX_SHELL) -- \
 	    scribble --markdown --link-section \
+	    ++main-xref-in \
+	    --redirect-main $(RACKET_RELEASES)/`$(RACKET_VERSION_CMD)`/doc/ \
 	    --dest-name \#tmp-$@ \
 	    guix/scripts/self-readme.scrbl
 	mv \#tmp-$@ $@

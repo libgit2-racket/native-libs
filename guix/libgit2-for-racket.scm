@@ -40,7 +40,7 @@
     (native-inputs
      (cons libgit2-native-libs
            (map (cut apply make-platform-package <>)
-                (filter cdr all-platforms-extracted))))
+                (filter cadr all-platforms-extracted))))
     (build-system copy-build-system)
     (arguments
      (list

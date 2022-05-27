@@ -36,9 +36,9 @@ license and the `MIT` license.
 The contents of this package were generated using
 [Guix](https://guix.gnu.org) and a [Nix
 flake](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html)
-with NAR hash `sha256-OeZG/N5N9vfRLW9RqHRkSLqFBmtxPAJue/2cFKyTDj4=`,
-last modified on 2022-03-20T03:16:09Z. The flake is from Git commit
-[`2700a945c6a8f814eb0e17d3116bc141406db69e`](https://github.com/LiberalArtist/native-libgit2-pkgs/commit/2700a945c6a8f814eb0e17d3116bc141406db69e):
+with NAR hash `sha256-3qR5+c5qLZ37T3X93ntqg2CQMTwQWY46rNQO4FVrfV8=`,
+last modified on 2022-05-27T11:29:06Z. The flake is from Git commit
+[`770b8f2717a4152af0bea8018e8a915dfaf6f574`](https://github.com/LiberalArtist/native-libgit2-pkgs/commit/770b8f2717a4152af0bea8018e8a915dfaf6f574):
 if you are reading this file in a Git repository with the same structure
 as
 [https://github.com/LiberalArtist/native-libgit2-pkgs](https://github.com/LiberalArtist/native-libgit2-pkgs),
@@ -49,29 +49,29 @@ branch.
 The shared library was compiled by Guix on `x86_64-linux` for
 `i386-win32`, and this package was assembled by Guix on `x86_64-linux`.
 
-The included libgit2 shared library is version 1.4.2, built from the
+The included libgit2 shared library is version 1.4.3, built from the
 source at
-[https://github.com/libgit2/libgit2/tree/v1.4.2](https://github.com/libgit2/libgit2/tree/v1.4.2).
+[https://github.com/libgit2/libgit2/tree/v1.4.3](https://github.com/libgit2/libgit2/tree/v1.4.3).
 The Nix sha256 hash of the source is
-`0xd5w2kzdafipf10sdjmrzzsi12q8rkpcafajwlnmwvrbg6ldvs5`.
+`02x1a4zrzpzjd0yxnsi8njh5hgihc1iy1v4r0fnl8m4ckcgp6x2s`.
 
 The build environment used Nixpkgs from the
 [`nixos-21.11`](https://github.com/NixOs/nixpkgs/tree/nixos-21.11)
 branch of
 [https://github.com/NixOs/nixpkgs](https://github.com/NixOs/nixpkgs),
 which resolved to commit
-[`2c66a7a6e036971c4847cca424125f55b9eb0b0b`](https://github.com/NixOs/nixpkgs/commit/2c66a7a6e036971c4847cca424125f55b9eb0b0b)
-\(last modified 2022-03-17T04:12:11Z) with NAR hash
-`sha256-Jcc+vHNDN3KDWuzGNTl3A24ICGovPneJDejiN2t57QI=`. Guix was used
+[`06db2e2197401b74fcf82d4e84be15b0b5851c7b`](https://github.com/NixOs/nixpkgs/commit/06db2e2197401b74fcf82d4e84be15b0b5851c7b)
+\(last modified 2022-05-22T14:30:24Z) with NAR hash
+`sha256-klSCYMpR4TqWYoTD/xZ2qM9UIPRFC6pK+S/kJuVLbFw=`. Guix was used
 from the
 [`master`](https://git.savannah.gnu.org/cgit/guix.git/log/?h=master)
 branch of
 [https://git.savannah.gnu.org/git/guix.git](https://git.savannah.gnu.org/git/guix.git),
 which resolved to commit
-[`0d216771704bb93f72a0ef4d22f7af52df97b5de`](https://git.savannah.gnu.org/cgit/guix.git/tree/?id=0d216771704bb93f72a0ef4d22f7af52df97b5de).
+[`03216987c992a081b071641cfa45a283e7682bb5`](https://git.savannah.gnu.org/cgit/guix.git/tree/?id=03216987c992a081b071641cfa45a283e7682bb5).
 The Guix channel was authenticated starting at commit
 [`9edb3f66fd807b096b48283debdcddccfea34bad`](https://git.savannah.gnu.org/cgit/guix.git/tree/?id=9edb3f66fd807b096b48283debdcddccfea34bad)
 with OpenPGP fingerprint `BBB0 2DDF 2CEA F6A8 0D1D  E643 A2A0 6DF2 A33A
 54FA`.
 
-For further details, see the [provenance/](./provenance/) directory.
+For further details, see [provenance.rktd](./provenance.rktd).

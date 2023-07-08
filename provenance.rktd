@@ -33,14 +33,14 @@
                  (ref . "nixos-21.11")
                  (repo . "nixpkgs")
                  (rev . "06db2e2197401b74fcf82d4e84be15b0b5851c7b")))
-        (pkg-version . "0.1")
+        (pkg-version . "0.2")
         (self-source-info
          .
-         #hasheq((lastModifiedDate . "2022-05-27T11:29:06Z")
+         #hasheq((lastModifiedDate . "2023-07-08T16:47:32Z")
                  (narHash
                   .
-                  "sha256-3qR5+c5qLZ37T3X93ntqg2CQMTwQWY46rNQO4FVrfV8=")
-                 (rev . "770b8f2717a4152af0bea8018e8a915dfaf6f574")))
+                  "sha256-ITpLVw5Q7NoDCNcybRn1uDn0cE8Ae/J4XwHBnWbsZ/o=")
+                 (rev . "0c719ea327f30a1e5e7abc13ddfdd2ad1b065316")))
         (so-version . "1.4")
         (this-package
          .

@@ -401,9 +401,11 @@ origin and should be installed into Racket packages.")))
                  "-e"
                  (format #f "~s"
                          `(begin
-                            (require compiler/private/mach-o)
+                            (require (file #$(file-append local-scripts
+                                                          "/mach-o.rkt")))
                             (remove-signature ,lib-file-name)
-                            (eprintf "signature removed: ~v\n" ,lib-file-name)
+                            (eprintf "signature removed: ~v\n"
+                                     ,lib-file-name)
                             (add-ad-hoc-signature ,lib-file-name)
                             (eprintf "signature replaced: ~v\n"
                                      ,lib-file-name))))))))

@@ -1,5 +1,11 @@
 #lang racket/base
 (require racket/promise)
+;; https://github.com/racket/racket/raw/912b199e530189cb03c81658754e56f1849c7761/racket/collects/compiler/private/mach-o.rkt
+;; Modified where noted below to skip checking that the “file type”
+;; value is 2 (“demand-paged executable file”): our dylibs have 6
+;; (“Dynamically bound shared library file”). See:
+;;   - https://en.m.wikipedia.org/wiki/Mach-O
+;;   - https://github.com/bbusching/libgit2/issues/12#issuecomment-1626671023
 
 (provide add-plt-segment
          remove-signature
@@ -76,7 +82,7 @@
           (check-exe-id exe-id)
           (define machine-id (read-ulong p))
           (read-ulong p)
-          (check-same #x2 (read-ulong p))
+          (read-ulong p) #;(check-same #x2 (read-ulong p)) ;<-----------------
           (let* ([total-cnt (read-ulong p)]
                  [cmdssz (read-ulong p)]
                  [min-used (round-up-page cmdssz machine-id)]
@@ -465,7 +471,7 @@
           (define file-identity (let-values ([(base name dir?) (split-path file)])
                                   (bytes-append (path->bytes name) #"\0")))
           (read-ulong p)
-          (check-same #x2 (read-ulong p))
+          (read-ulong p) #;(check-same #x2 (read-ulong p)) ;<-----------------
           (let* ([total-cnt (read-ulong p)]
                  [cmdssz (read-ulong p)]
                  [min-used (round-up-page cmdssz machine-id)]

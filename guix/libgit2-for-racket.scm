@@ -391,7 +391,22 @@ origin and should be installed into Racket packages.")))
                  "-change"
                  nix-libiconv
                  "/usr/lib/libiconv.2.dylib"
-                 lib-file-name)))))
+                 lib-file-name)
+         ;; Re-sign the dylibs with ad-hoc signatures, since we've
+         ;; changed their contents (needed on aarch64).
+         ;; See: https://github.com/bbusching/libgit2/issues/12
+         ;; Implementation based on /racket/src/mac/codesign.rkt
+         ;; in the Racket git repository.
+         (invoke "racket"
+                 "-e"
+                 (format #f "~s"
+                         `(begin
+                            (require compiler/private/mach-o)
+                            (remove-signature ,lib-file-name)
+                            (eprintf "signature removed: ~v\n" ,lib-file-name)
+                            (add-ad-hoc-signature ,lib-file-name)
+                            (eprintf "signature replaced: ~v\n"
+                                     ,lib-file-name))))))))
 
 (define-public local-provenance-files
   (file-union

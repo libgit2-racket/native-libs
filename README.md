@@ -8,40 +8,40 @@ Currently, the pre-built library is provided for the following
 platforms:
 
 * `x86_64-linux` (package:
-  [`libgit2-x86_64-linux`](https://github.com/LiberalArtist/native-libgit2-pkgs/tree/x86_64-linux))
+  [`libgit2-x86_64-linux`](https://github.com/libgit2-racket/native-libs/tree/x86_64-linux))
 
 * `aarch64-macosx` (package:
-  [`libgit2-aarch64-macosx`](https://github.com/LiberalArtist/native-libgit2-pkgs/tree/aarch64-macosx))
+  [`libgit2-aarch64-macosx`](https://github.com/libgit2-racket/native-libs/tree/aarch64-macosx))
 
 * `x86_64-macosx` (package:
-  [`libgit2-x86_64-macosx`](https://github.com/LiberalArtist/native-libgit2-pkgs/tree/x86_64-macosx))
+  [`libgit2-x86_64-macosx`](https://github.com/libgit2-racket/native-libs/tree/x86_64-macosx))
 
 * `i386-win32` (package:
-  [`libgit2-i386-win32`](https://github.com/LiberalArtist/native-libgit2-pkgs/tree/i386-win32))
+  [`libgit2-i386-win32`](https://github.com/libgit2-racket/native-libs/tree/i386-win32))
 
 * `x86_64-win32` (package:
-  [`libgit2-x86_64-win32`](https://github.com/LiberalArtist/native-libgit2-pkgs/tree/x86_64-win32))
+  [`libgit2-x86_64-win32`](https://github.com/libgit2-racket/native-libs/tree/x86_64-win32))
 
 If you are reading this file in a Git repository with the same structure
 as
-[https://github.com/LiberalArtist/native-libgit2-pkgs](https://github.com/LiberalArtist/native-libgit2-pkgs),
+[https://github.com/libgit2-racket/native-libs](https://github.com/libgit2-racket/native-libs),
 you can find the platform-specific packages on sibling branches of this
-one. The [`main`](https://github.com/LiberalArtist/native-libgit2-pkgs)
-branch may help you find the relevant branches and commits.
+one. The [`main`](https://github.com/libgit2-racket/native-libs) branch
+may help you find the relevant branches and commits.
 
 ## Provenance
 
 The contents of these packages, including this meta-package, were
 generated using [Guix](https://guix.gnu.org) and a [Nix
 flake](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html)
-with NAR hash `sha256-ITpLVw5Q7NoDCNcybRn1uDn0cE8Ae/J4XwHBnWbsZ/o=`,
-last modified on 2023-07-08T16:47:32Z. The flake is from Git commit
-[`0c719ea327f30a1e5e7abc13ddfdd2ad1b065316`](https://github.com/LiberalArtist/native-libgit2-pkgs/commit/0c719ea327f30a1e5e7abc13ddfdd2ad1b065316):
+with NAR hash `sha256-oVKJ/Q7pD6FAAQXGTG/A3LHyfDr///TzYc7gjxz3VtY=`,
+last modified on 2023-07-13T20:22:58Z. The flake is from Git commit
+[`bd400daed8d4e38db6fc472d4ec82b99a884303c`](https://github.com/libgit2-racket/native-libs/commit/bd400daed8d4e38db6fc472d4ec82b99a884303c):
 if you are reading this file in a Git repository with the same structure
 as
-[https://github.com/LiberalArtist/native-libgit2-pkgs](https://github.com/LiberalArtist/native-libgit2-pkgs),
+[https://github.com/libgit2-racket/native-libs](https://github.com/libgit2-racket/native-libs),
 that commit should be part of the
-[`build-scripts`](https://github.com/LiberalArtist/native-libgit2-pkgs/tree/build-scripts)
+[`build-scripts`](https://github.com/libgit2-racket/native-libs/tree/build-scripts)
 branch.
 
 The flake was built by Nix on `x86_64-unknown-linux-gnu`, and this

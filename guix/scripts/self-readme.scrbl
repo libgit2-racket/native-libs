@@ -36,7 +36,7 @@ instructions on editing and regenerating it.
 @bold{Quick Start:} Try @exec{nix run}, @exec{make show},
 or---without even needing to clone this
 repository!---@exec{nix flake show
- github:LiberalArtist/native-libgit2-pkgs/build-scripts}.
+ github:libgit2-racket/native-libs/build-scripts}.
 See @secref{run} for more.
 
 @bold{Contents:}
@@ -163,7 +163,7 @@ In principle, you don't even need a Git clone of this
 repository to generate the Racket packages. Assuming you
 have the @seclink["recommended-setup"]{recommended setup},
 running the command:
-@commandline{nix run github:LiberalArtist/native-libgit2-pkgs/build-scripts}
+@commandline{nix run github:libgit2-racket/native-libs/build-scripts}
 will compile libgit2 and generate the Racket packages for
 all platforms. In practice, you probably will have a Git
 clone, so you'll likely prefer to use:
@@ -252,7 +252,7 @@ written in many equivalent ways, but, in brief:
  @item{The @litchar{.} portion can be replaced by a
   different form of
   @hyperlink[@nix-manual{command-ref/new-cli/nix3-flake.html#flake-references}]{flake reference},
-  e.g@._ @litchar{github:LiberalArtist/native-libgit2-pkgs/build-scripts}
+  e.g@._ @litchar{github:libgit2-racket/native-libs/build-scripts}
   (but note that this example would build the commit from the
   specified Git repository and branch, rather than your local
   working tree!);}

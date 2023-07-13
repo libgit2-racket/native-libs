@@ -21,8 +21,8 @@ regenerating it.
 
 **Quick Start:** Try `nix run`, `make show`, or—without even needing to
 clone this repository!—`nix flake show
-github:LiberalArtist/native-libgit2-pkgs/build-scripts`. See [Running
-the Build](#running-the-build) for more.
+github:libgit2-racket/native-libs/build-scripts`. See [Running the
+Build](#running-the-build) for more.
 
 **Contents:**
 
@@ -147,7 +147,7 @@ In principle, you don’t even need a Git clone of this repository to
 generate the Racket packages. Assuming you have the [recommended
 setup](#recommended-setup), running the command:
 
-  `nix run github:LiberalArtist/native-libgit2-pkgs/build-scripts`
+  `nix run github:libgit2-racket/native-libs/build-scripts`
 
 will compile libgit2 and generate the Racket packages for all platforms.
 In practice, you probably will have a Git clone, so you’ll likely prefer
@@ -230,9 +230,9 @@ equivalent ways, but, in brief:
 
 * The `.` portion can be replaced by a different form of [flake
   reference](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html#flake-references),
-  e.g. `github:LiberalArtist/native-libgit2-pkgs/build-scripts` \(but
-  note that this example would build the commit from the specified Git
-  repository and branch, rather than your local working tree!);
+  e.g. `github:libgit2-racket/native-libs/build-scripts` \(but note that
+  this example would build the commit from the specified Git repository
+  and branch, rather than your local working tree!);
 
 * The “fragment” (the portion beginning with `#`) can be omitted if it
   refers to the `defaultApp` or `defaultPackage` reported by `make show`

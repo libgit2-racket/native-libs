@@ -73,7 +73,7 @@
                                     (map cdr (or native-inputs inputs))))
               (chdir "build"))))))
     (home-page
-     "https://github.com/LiberalArtist/native-libgit2-pkgs/tree/build-scripts")
+     "https://github.com/libgit2-racket/native-libs/tree/build-scripts")
     (synopsis "All generated Racket libgit2 packages")
     (description "This Guix package combines all the generated Racket
 libgit2 packages for distributing the shared library.")

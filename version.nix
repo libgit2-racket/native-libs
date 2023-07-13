@@ -1,5 +1,5 @@
 {
-  pkgVersion = "0.2"; # info.rkt `(define version ...)`
+  pkgVersion = "0.3"; # info.rkt `(define version ...)`
   breakingChangeLabel = ""; # to change package names for breaking changes
   soVersion = "1.4"; # e.g. for `ffi-lib`
   deprecateHard = true; # controls -DDEPRECATE_HARD=ON

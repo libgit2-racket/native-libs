@@ -18,7 +18,7 @@
          scribble/base)
 
 (define canonical-repo
-  "https://github.com/LiberalArtist/native-libgit2-pkgs")
+  "https://github.com/libgit2-racket/native-libs")
 
 (define (make-pkg-name* suffix)
   (make-pkg-name breaking-change-label suffix))

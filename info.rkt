@@ -4,7 +4,7 @@
 (define pkg-name "libgit2-i386-win32")
 (define collection "libgit2")
 
-(define version "0.2")
+(define version "0.3")
 (define pkg-desc "native libraries for \"libgit2\" on \"i386-win32\"")
 (define pkg-authors '(philip))
 
